@@ -33,6 +33,9 @@ func New(cfg *HandlerConfig) *Handler {
 
 func (h *Handler) Handler() http.Handler {
 	return handler.NewHandler(func(w http.ResponseWriter, r *http.Request) error {
+		// method := r.Context().Value(middleware.AmazonAPIOperationKey).(string)
+		// fmt.Println(method)
+
 		return nil
 	})
 }

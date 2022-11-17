@@ -68,6 +68,8 @@ Theses are environment variable list that you can configure.
 
 ## References
 
+* [DynamoDB low-level API, AWS Developer Guide](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.LowLevelAPI.html)
+
 <!-- Badge section -->
 [Dependabot Icon]: https://img.shields.io/badge/-Dependabot-025E8C?style=flat-square&logo=dependabot&logoColor=white
 [Dependabot]: https://github.com/kerraform/kerranamodb//security/dependabot
