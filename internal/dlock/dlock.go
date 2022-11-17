@@ -12,7 +12,7 @@ type options struct {
 	endpoints []string
 }
 
-type Lock struct {
+type DMutex struct {
 	endpoints []string
 	lock      *dsync.Dsync
 	ips       []string
@@ -26,13 +26,13 @@ func WithServiceDiscovery(sd string) LockOptions {
 	}
 }
 
-func WithStaticIPs(endpoints []string) LockOptions {
+func WithStaticEndpoints(endpoints []string) LockOptions {
 	return func(o *options) {
 		o.endpoints = endpoints
 	}
 }
 
-func NewLock(ctx context.Context, opts ...LockOptions) (*Lock, error) {
+func NewDMutex(ctx context.Context, opts ...LockOptions) (*DMutex, error) {
 	var o options
 	for _, opt := range opts {
 		opt(&o)
@@ -47,11 +47,15 @@ func NewLock(ctx context.Context, opts ...LockOptions) (*Lock, error) {
 			return nil, err
 		}
 		for _, ip := range ips {
+			lks = append(lks, NewDLocker(ctx, ip.String()))
 			eps = append(eps, ip.String())
 		}
 	}
 
 	if len(o.endpoints) > 0 {
+		for _, e := range o.endpoints {
+			lks = append(lks, NewDLocker(ctx, e))
+		}
 		eps = append(eps, o.endpoints...)
 	}
 

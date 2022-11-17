@@ -43,7 +43,7 @@ type Lock struct {
 	Nodes                    string `env:"NODES"`
 }
 
-func (l *Lock) GetNodes(ctx context.Context) []string {
+func (l *Lock) GetNodes() []string {
 	return strings.Split(l.Nodes, ",")
 }
 

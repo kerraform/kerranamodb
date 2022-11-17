@@ -99,6 +99,21 @@ func run(args []string) error {
 	}
 	t := tp.Tracer(cfg.Trace.Name)
 
+	var lopts []dlock.LockOptions
+	if len(cfg.Lock.Nodes) > 0 {
+		lopts = append(lopts, dlock.WithStaticEndpoints(cfg.Lock.GetNodes()))
+	}
+
+	if v := cfg.Lock.ServiceDiscoveryEndpoint; v != "" {
+		lopts = append(lopts, dlock.WithServiceDiscovery(v))
+	}
+
+	logger.Info("setup dlock")
+	dmu, err := dlock.NewDMutex(ctx, lopts...)
+	if err != nil {
+		return err
+	}
+
 	logger.Info("setup backend", zap.String("backend", cfg.Backend.Type), zap.String("rootPath", cfg.Backend.RootPath))
 	var d driver.Driver
 	switch driver.DriverType(cfg.Backend.Type) {
@@ -106,6 +121,7 @@ func run(args []string) error {
 		d, err = s3.NewDriver(logger, &s3.DriverOpts{
 			AccessKey:    cfg.Backend.S3.AccessKey,
 			Bucket:       cfg.Backend.S3.Bucket,
+			Dmu:          dmu,
 			Endpoint:     cfg.Backend.S3.Endpoint,
 			SecretKey:    cfg.Backend.S3.SecretKey,
 			Tracer:       t,
@@ -117,6 +133,7 @@ func run(args []string) error {
 		}
 	case driver.DriverTypeLocal:
 		d = local.NewDriver(&local.DriverConfig{
+			Dmu:      dmu,
 			Logger:   logger,
 			Tracer:   t,
 			RootPath: cfg.Backend.RootPath,
@@ -128,7 +145,6 @@ func run(args []string) error {
 	metrics := metric.New(logger, d)
 
 	wg, ctx := errgroup.WithContext(ctx)
-
 	v1 := v1.New(&v1.HandlerConfig{
 		Driver: d,
 		Logger: logger,
@@ -153,7 +169,8 @@ func run(args []string) error {
 	})
 
 	grpcSvc := dlock.NewLockService(&dlock.LockServiceOptions{
-		Port: cfg.GRPCPort,
+		Port:   cfg.GRPCPort,
+		Logger: logger,
 	})
 	logger.Info("grpc server started", zap.Int("port", cfg.GRPCPort))
 	wg.Go(func() error {
@@ -166,7 +183,6 @@ func run(args []string) error {
 	case v := <-sigCh:
 		logger.Info("received signal %d", zap.String("signal", v.String()))
 	case <-ctx.Done():
-
 	}
 
 	// Context for shutdown

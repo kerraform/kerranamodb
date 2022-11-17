@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 
+	"github.com/kerraform/kerranamodb/internal/dlock"
 	"github.com/kerraform/kerranamodb/internal/driver"
 	"github.com/kerraform/kerranamodb/internal/id"
 	"go.opentelemetry.io/otel/trace"
@@ -10,12 +11,14 @@ import (
 )
 
 type d struct {
+	dmu      *dlock.DMutex
 	rootPath string
 	logger   *zap.Logger
 	tracer   trace.Tracer
 }
 
 type DriverConfig struct {
+	Dmu      *dlock.DMutex
 	RootPath string
 	Logger   *zap.Logger
 	Tracer   trace.Tracer
@@ -23,6 +26,7 @@ type DriverConfig struct {
 
 func NewDriver(cfg *DriverConfig) driver.Driver {
 	return &d{
+		dmu:      cfg.Dmu,
 		logger:   cfg.Logger,
 		rootPath: cfg.RootPath,
 		tracer:   cfg.Tracer,
