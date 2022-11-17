@@ -106,6 +106,19 @@ func (d *d) GetLock(ctx context.Context, table string, lid id.LockID) (driver.In
 	return driver.Info(string(b.Bytes())), nil
 }
 
+func (d *d) HasLock(ctx context.Context, table string, lid id.LockID) (bool, error) {
+	_, err := d.GetLock(ctx, table, lid)
+	if err != nil {
+		if errors.Is(err, driver.ErrLockNotFound) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (d *d) SaveLock(ctx context.Context, table string, lid id.LockID, info driver.Info) error {
 	keyPath := fmt.Sprintf("%s/%s", table, lid)
 

@@ -57,7 +57,7 @@ func (h *Handler) Handler() http.Handler {
 
 			return h.driver.DeleteLock(r.Context(), i.TableName, lid)
 		case dynamodb.OperationTypeGetItem:
-			var i api.UpsertInput
+			var i api.GetInput
 
 			if err := json.NewDecoder(r.Body).Decode(&i); err != nil {
 				return err
@@ -74,7 +74,7 @@ func (h *Handler) Handler() http.Handler {
 				return err
 			}
 
-			r := &api.UpsertInput{
+			r := &api.PutInput{
 				TableName: i.TableName,
 				Item: map[string]map[string]string{
 					api.InfoKey: {
@@ -88,7 +88,7 @@ func (h *Handler) Handler() http.Handler {
 
 			return json.NewEncoder(w).Encode(r)
 		case dynamodb.OperationTypePutItem:
-			var i api.UpsertInput
+			var i api.PutInput
 
 			if err := json.NewDecoder(r.Body).Decode(&i); err != nil {
 				return err
@@ -107,6 +107,14 @@ func (h *Handler) Handler() http.Handler {
 			lid, err := i.GetLockID()
 			if err != nil {
 				return errors.Wrap(err, errors.WithBadRequest("failed to get lock id"))
+			}
+
+			hasLock, err := h.driver.HasLock(r.Context(), i.TableName, lid)
+			if err != nil {
+				return err
+			}
+			if hasLock {
+				return errors.Wrap(fmt.Errorf("has lock"), errors.WithConditionalCheckFailedException())
 			}
 
 			if err := h.driver.SaveLock(r.Context(), i.TableName, lid, driver.Info(info)); err != nil {

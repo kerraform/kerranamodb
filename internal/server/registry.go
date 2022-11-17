@@ -21,5 +21,5 @@ func (s *Server) registerRegistryHandler() {
 	// Note(KeisukeYamashita):
 	// Paths can be configured by `dynamodb_endpoint` field.
 	// Thus, for future development, I will version-ize this API server.
-	v1.Methods(http.MethodPost).Path("").Handler(s.v1.Handler())
+	v1.Methods(http.MethodPost).Path("/").Handler(s.v1.Handler())
 }

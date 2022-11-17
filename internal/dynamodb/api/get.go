@@ -6,20 +6,14 @@ import (
 	"github.com/kerraform/kerranamodb/internal/id"
 )
 
-const (
-	InfoKey   = "Info"
-	LockIDKey = "LockID"
-	SKey      = "S"
-)
-
-type UpsertInput struct {
-	TableName           string `json:"TableName"`
-	Item                map[string]map[string]string
+type GetInput struct {
+	TableName           string
+	Key                 map[string]map[string]string
 	ConditionExpression string
 }
 
-func (i *UpsertInput) GetInfo() (string, error) {
-	k, ok := i.Item[InfoKey]
+func (i *GetInput) GetInfo() (string, error) {
+	k, ok := i.Key[InfoKey]
 	if !ok {
 		return "", fmt.Errorf("%s not exist", LockIDKey)
 	}
@@ -32,8 +26,8 @@ func (i *UpsertInput) GetInfo() (string, error) {
 	return res, nil
 }
 
-func (i *UpsertInput) GetLockID() (id.LockID, error) {
-	k, ok := i.Item[LockIDKey]
+func (i *GetInput) GetLockID() (id.LockID, error) {
+	k, ok := i.Key[LockIDKey]
 	if !ok {
 		return "", fmt.Errorf("%s not exist", LockIDKey)
 	}

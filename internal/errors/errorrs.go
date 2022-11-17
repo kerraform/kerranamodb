@@ -11,8 +11,7 @@ type Error struct {
 	Err        error `json:"-"`
 	StatusCode int   `json:"-"`
 
-	// https://github.com/opencontainers/distribution-spec/blob/master/spec.md#error-codes
-	Code    string      `json:"code"`
+	Type    string      `json:"__type"`
 	Message string      `json:"message"`
 	Detail  interface{} `json:"detail,omitempty"`
 }
