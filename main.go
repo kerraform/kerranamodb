@@ -12,9 +12,10 @@ import (
 	"github.com/kerraform/kerranamodb/internal/driver"
 	"github.com/kerraform/kerranamodb/internal/driver/local"
 	"github.com/kerraform/kerranamodb/internal/driver/s3"
+	"github.com/kerraform/kerranamodb/internal/http"
+	server "github.com/kerraform/kerranamodb/internal/http"
 	"github.com/kerraform/kerranamodb/internal/logging"
 	"github.com/kerraform/kerranamodb/internal/metric"
-	"github.com/kerraform/kerranamodb/internal/server"
 	"github.com/kerraform/kerranamodb/internal/trace"
 	v1 "github.com/kerraform/kerranamodb/internal/v1"
 	"github.com/kerraform/kerranamodb/internal/version"
@@ -132,7 +133,7 @@ func run(args []string) error {
 		Logger: logger,
 	})
 
-	svr := server.NewServer(&server.ServerConfig{
+	httpSvr := http.NewServer(&server.ServerConfig{
 		Driver: d,
 		Logger: logger,
 		Metric: metrics,
@@ -140,14 +141,14 @@ func run(args []string) error {
 		V1:     v1,
 	})
 
-	conn, err := net.Listen("tcp", cfg.Address())
+	httpConn, err := net.Listen("tcp", cfg.HTTPAddress())
 	if err != nil {
 		return err
 	}
 
-	logger.Info("server started", zap.Int("port", cfg.Port))
+	logger.Info("http server started", zap.Int("port", cfg.HTTPPort))
 	wg.Go(func() error {
-		return svr.Serve(ctx, conn)
+		return httpSvr.Serve(ctx, httpConn)
 	})
 
 	sigCh := make(chan os.Signal, 1)
@@ -161,7 +162,7 @@ func run(args []string) error {
 
 	// Context for shutdown
 	newCtx := context.Background()
-	if err := svr.Shutdown(newCtx); err != nil {
+	if err := httpSvr.Shutdown(newCtx); err != nil {
 		logger.Error("failed to graceful shutdown server", zap.Error(err))
 		return err
 	}

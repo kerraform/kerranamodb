@@ -13,6 +13,18 @@ build:
 		-ldflags '-X "github.com/kerraform/kerranamodb//internal/version.Version=$(VERSION)" -X "github.com/kerraform/kerranamodb//internal/version.Commit=$(COMMIT)"' \
 		./main.go
 
+TOOLS=\
+	github.com/fullstorydev/grpcurl/cmd/grpcurl@latest \
+	google.golang.org/protobuf/cmd/protoc-gen-go@latest \
+	github.com/bufbuild/connect-go/cmd/protoc-gen-connect-go@latest \
+	github.com/bufbuild/buf/cmd/buf@latest
+
+.PHONY: install-tools
+install-tools:
+	@for tool in $(TOOLS) ; do \
+		go install $$tool; \
+	done
+
 .PHONY: run
 run:
 	@$(GOCMD) run \

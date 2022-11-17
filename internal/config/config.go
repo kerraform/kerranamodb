@@ -29,12 +29,13 @@ type BackendS3 struct {
 }
 
 type Config struct {
-	Backend *Backend `env:",prefix=BACKEND_"`
-	Log     *Log     `env:",prefix=LOG_"`
-	Lock    *Lock    `env:",prefix=LOCK_"`
-	Name    string   `env:"NAME,default=kerranamodb"`
-	Port    int      `env:"PORT,default=5000"`
-	Trace   *Trace   `env:",prefix=TRACE_"`
+	Backend  *Backend `env:",prefix=BACKEND_"`
+	Log      *Log     `env:",prefix=LOG_"`
+	Lock     *Lock    `env:",prefix=LOCK_"`
+	Name     string   `env:"NAME,default=kerranamodb"`
+	HTTPPort int      `env:"HTTP_PORT,default=5000"`
+	GRPCPort int      `env:"GPRC_PORT,default=10020"`
+	Trace    *Trace   `env:",prefix=TRACE_"`
 }
 
 type Lock struct {
@@ -58,8 +59,8 @@ type TraceJaeger struct {
 	Endpoint string `env:"ENDPOINT"`
 }
 
-func (cfg *Config) Address() string {
-	return fmt.Sprintf(":%d", cfg.Port)
+func (cfg *Config) HTTPAddress() string {
+	return fmt.Sprintf(":%d", cfg.HTTPPort)
 }
 
 type Log struct {

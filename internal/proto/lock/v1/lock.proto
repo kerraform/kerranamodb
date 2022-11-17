@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package lock.v1;
+
+option go_package = "github.com/kerraform/kerranamodb/internal/gen/lock/v1;lockv1";
+
+service LockService {
+  rpc Lock(LockRequest) returns (LockResponse) {}
+  rpc Unlock(UnlockRequest) returns (UnlockResponse) {}
+  rpc RLock(RLockRequest) returns (RLockResponse) {}
+  rpc RUnlock(RUnlockRequest) returns (RUnlockResponse) {}
+}
+
+message LockRequest {}
+message UnlockRequest {}
+message RLockRequest {}
+message RUnlockRequest {}
+
+message LockResponse {}
+message UnlockResponse {}
+message RLockResponse {}
+message RUnlockResponse {}
