@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/kerraform/kerranamodb/internal/config"
+	"github.com/kerraform/kerranamodb/internal/dlock"
 	"github.com/kerraform/kerranamodb/internal/driver"
 	"github.com/kerraform/kerranamodb/internal/driver/local"
 	"github.com/kerraform/kerranamodb/internal/driver/s3"
@@ -149,6 +150,14 @@ func run(args []string) error {
 	logger.Info("http server started", zap.Int("port", cfg.HTTPPort))
 	wg.Go(func() error {
 		return httpSvr.Serve(ctx, httpConn)
+	})
+
+	grpcSvc := dlock.NewLockService(&dlock.LockServiceOptions{
+		Port: cfg.GRPCPort,
+	})
+	logger.Info("grpc server started", zap.Int("port", cfg.GRPCPort))
+	wg.Go(func() error {
+		return grpcSvc.Serve()
 	})
 
 	sigCh := make(chan os.Signal, 1)
