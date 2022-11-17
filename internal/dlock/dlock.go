@@ -64,7 +64,7 @@ func NewDMutex(ctx context.Context, opts ...LockOptions) (*DMutex, error) {
 		return nil, err
 	}
 
-	return &Lock{
+	return &DMutex{
 		endpoints: eps,
 		lock:      ds,
 	}, nil
