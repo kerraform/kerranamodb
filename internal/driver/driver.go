@@ -1,5 +1,11 @@
 package driver
 
+import (
+	"context"
+
+	"github.com/kerraform/kerranamodb/internal/id"
+)
+
 type DriverType string
 
 const (
@@ -7,21 +13,11 @@ const (
 	DriverTypeS3    DriverType = "s3"
 )
 
-type Driver interface{}
-
-type CreateModuleVersionResult struct {
-	Upload string
+type Driver interface {
+	DeleteLock(context.Context, string, id.LockID) error
+	HasLock(context.Context, string, id.LockID) (bool, error)
+	GetLock(context.Context, string, id.LockID) (Info, error)
+	SaveLock(context.Context, string, id.LockID, Info) error
 }
 
-type ProviderVersionMetadata struct {
-	KeyID string `json:"key-id"`
-}
-
-type CreateProviderVersionResult struct {
-	SHASumsUpload    string
-	SHASumsSigUpload string
-}
-
-type CreateProviderPlatformResult struct {
-	ProviderBinaryUploads string
-}
+type Info string

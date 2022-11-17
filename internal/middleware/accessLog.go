@@ -58,8 +58,18 @@ func AccessLog(logger *zap.Logger) func(http.Handler) http.Handler {
 			req := r.WithContext(context.WithValue(r.Context(), logging.Key, l))
 
 			defer func() {
+				fs := []zapcore.Field{zap.Int("statusCode", res.StatusCode)}
+				ctx := r.Context()
+				if v, ok := ctx.Value(AmazonAPIVersionKey).(string); ok {
+					fs = append(fs, zap.String("amazonAPIVersion", v))
+				}
+
+				if v, ok := ctx.Value(AmazonAPIOperationKey).(string); ok {
+					fs = append(fs, zap.String("amazonAPIOperation", v))
+				}
+
 				l.Named("accessLog").Info("access to server",
-					zap.Int("statusCode", res.StatusCode),
+					fs...,
 				)
 			}()
 			next.ServeHTTP(rww, req)
