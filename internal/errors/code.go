@@ -2,10 +2,10 @@ package errors
 
 import "net/http"
 
-func WithBadRequest() WrapOption {
+func WithBadRequest(msg string) WrapOption {
 	return func(e *Error) {
 		e.Code = "BADREQUEST"
-		e.Message = "request invalid"
+		e.Message = msg
 		e.StatusCode = http.StatusBadRequest
 	}
 }

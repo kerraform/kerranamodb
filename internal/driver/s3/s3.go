@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -8,8 +9,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
 	"github.com/kerraform/kerranamodb/internal/driver"
+	"github.com/kerraform/kerranamodb/internal/id"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -66,4 +70,55 @@ func NewDriver(logger *zap.Logger, opts *DriverOpts) (driver.Driver, error) {
 		tracer: opts.Tracer,
 		s3:     s3Client,
 	}, nil
+}
+
+func (d *d) DeleteLock(ctx context.Context, table string, lid id.LockID) error {
+	keyPath := fmt.Sprintf("%s/%s", table, lid)
+	_, err := d.s3.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(d.bucket),
+		Key:    aws.String(keyPath),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *d) GetLock(ctx context.Context, table string, lid id.LockID) (driver.Info, error) {
+	keyPath := fmt.Sprintf("%s/%s", table, lid)
+	b := manager.NewWriteAtBuffer([]byte{})
+	downloader := manager.NewDownloader(d.s3)
+	_, err := downloader.Download(ctx, b, &s3.GetObjectInput{
+		Bucket: aws.String(d.bucket),
+		Key:    aws.String(keyPath),
+	})
+
+	if err != nil {
+		var ae smithy.APIError
+		if errors.As(err, &ae) {
+			return "", driver.ErrLockNotFound
+		}
+
+		return "", err
+	}
+
+	return driver.Info(string(b.Bytes())), nil
+}
+
+func (d *d) SaveLock(ctx context.Context, table string, lid id.LockID, info driver.Info) error {
+	keyPath := fmt.Sprintf("%s/%s", table, lid)
+
+	b := bytes.NewBuffer([]byte(info))
+	uploader := manager.NewUploader(d.s3)
+	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(d.bucket),
+		Key:    aws.String(keyPath),
+		Body:   b,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
