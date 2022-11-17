@@ -1,0 +1,94 @@
+builds:
+  - id: kerranamodb
+    env:
+      - CGO_ENABLED=0
+    main: .
+    ldflags:
+      - -s -w
+      - -X github.com/kerraform/kerranamodb/internal/version.Version={{.Version}}
+      - -X github.com/kerraform/kerranamodb/internal/version.Commit={{.FullCommit}}
+    goarch:
+      - amd64
+      - arm64
+    goos:
+      - linux
+      - darwin
+      - windows
+dockers:
+  - build_flag_templates:
+      - --pull
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.url=https://github.com/kerraform/{{ .ProjectName }}
+      - --label=org.opencontainers.image.title={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --platform=linux/amd64
+    dockerfile: Dockerfile.compile
+    extra_files:
+      - LICENSE
+    image_templates:
+      - ghcr.io/kerraform/kerranamodb:{{ .Tag }}-amd64
+      - ghcr.io/kerraform/kerranamodb:v{{ .Major }}-amd64
+      - ghcr.io/kerraform/kerranamodb:v{{ .Major }}.{{ .Minor }}-amd64
+      - ghcr.io/kerraform/kerranamodb:amd64
+    goos: linux
+    goarch: amd64
+    ids:
+      - kerranamodb
+    use: buildx
+  - build_flag_templates:
+      - --pull
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.url=https://github.com/kerraform/{{ .ProjectName }}
+      - --label=org.opencontainers.image.title={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --platform=linux/arm64
+    dockerfile: Dockerfile.compile
+    extra_files:
+      - LICENSE
+    image_templates:
+      - ghcr.io/kerraform/kerranamodb:{{ .Tag }}-arm64v8
+      - ghcr.io/kerraform/kerranamodb:v{{ .Major }}-arm64v8
+      - ghcr.io/kerraform/kerranamodb:v{{ .Major }}.{{ .Minor }}-arm64v8
+      - ghcr.io/kerraform/kerranamodb:arm64v8
+    goos: linux
+    goarch: arm64
+    ids:
+      - kerranamodb
+    use: buildx
+docker_manifests:
+  - name_template: ghcr.io/kerraform/kerranamodb:{{ .Tag }}
+    image_templates:
+      - ghcr.io/kerraform/kerranamodb:{{ .Tag }}-amd64
+      - ghcr.io/kerraform/kerranamodb:{{ .Tag }}-arm64v8
+  - name_template: ghcr.io/kerraform/kerranamodb:v{{ .Major }}
+    image_templates:
+      - ghcr.io/kerraform/kerranamodb:v{{ .Major }}-amd64
+      - ghcr.io/kerraform/kerranamodb:v{{ .Major }}-arm64v8
+  - name_template: ghcr.io/kerraform/kerranamodb:v{{ .Major }}.{{ .Minor }}
+    image_templates:
+      - ghcr.io/kerraform/kerranamodb:v{{ .Major }}.{{ .Minor }}-amd64
+      - ghcr.io/kerraform/kerranamodb:v{{ .Major }}.{{ .Minor }}-arm64v8
+  - name_template: ghcr.io/kerraform/kerranamodb:latest
+    image_templates:
+      - ghcr.io/kerraform/kerranamodb:amd64
+      - ghcr.io/kerraform/kerranamodb:arm64v8
+changelog:
+  skip: false
+  groups:
+    - title: Features ✨
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: Doc 📚
+      regexp: "^.*docs[(\\w)]*:+.*$"
+      order: 1
+    - title: Bug Fixes 🐛
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 2
+    - title: Others 🎐
+      order: 999
+release:
+  github:
+    owner: kerraform
+    name: kerranamodb
