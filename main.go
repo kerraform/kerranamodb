@@ -133,11 +133,11 @@ func run(args []string) error {
 	})
 
 	svr := server.NewServer(&server.ServerConfig{
-		Driver:         d,
-		Logger:         logger,
-		Metric:         metrics,
-		Tracer:         t,
-		V1:             v1,
+		Driver: d,
+		Logger: logger,
+		Metric: metrics,
+		Tracer: t,
+		V1:     v1,
 	})
 
 	conn, err := net.Listen("tcp", cfg.Address())

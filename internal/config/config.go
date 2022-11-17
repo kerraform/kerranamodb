@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/sethvargo/go-envconfig"
 	"go.uber.org/zap/zapcore"
@@ -30,9 +31,19 @@ type BackendS3 struct {
 type Config struct {
 	Backend *Backend `env:",prefix=BACKEND_"`
 	Log     *Log     `env:",prefix=LOG_"`
+	Lock    *Lock    `env:",prefix=LOCK_"`
 	Name    string   `env:"NAME,default=kerranamodb"`
 	Port    int      `env:"PORT,default=5000"`
 	Trace   *Trace   `env:",prefix=TRACE_"`
+}
+
+type Lock struct {
+	ServiceDiscoveryEndpoint string `env:"SERVICE_DISCOVERY_ENDPOINT"`
+	Nodes                    string `env:"NODES"`
+}
+
+func (l *Lock) GetNodes(ctx context.Context) []string {
+	return strings.Split(l.Nodes, ",")
 }
 
 type Trace struct {

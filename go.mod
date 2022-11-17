@@ -12,6 +12,7 @@ require (
 	github.com/go-delve/delve v1.9.1
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/gorilla/mux v1.8.0
+	github.com/minio/dsync/v3 v3.0.1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sethvargo/go-envconfig v0.8.2
 	go.opentelemetry.io/otel v1.11.1
