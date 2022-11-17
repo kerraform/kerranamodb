@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/kerraform/kerranamodb/internal/dlock"
 	"github.com/kerraform/kerranamodb/internal/driver"
 	"github.com/kerraform/kerranamodb/internal/dynamodb"
 	"github.com/kerraform/kerranamodb/internal/dynamodb/api"
 	"github.com/kerraform/kerranamodb/internal/errors"
 	"github.com/kerraform/kerranamodb/internal/handler"
 	"github.com/kerraform/kerranamodb/internal/middleware"
+	"github.com/minio/dsync/v3"
 	"go.uber.org/zap"
 )
 
@@ -21,17 +23,20 @@ const (
 )
 
 type Handler struct {
+	dmu    *dlock.DMutex
 	logger *zap.Logger
 	driver driver.Driver
 }
 
 type HandlerConfig struct {
+	Dmu    *dlock.DMutex
 	Driver driver.Driver
 	Logger *zap.Logger
 }
 
 func New(cfg *HandlerConfig) *Handler {
 	return &Handler{
+		dmu:    cfg.Dmu,
 		driver: cfg.Driver,
 		logger: cfg.Logger.Named("v1"),
 	}
@@ -94,6 +99,11 @@ func (h *Handler) Handler() http.Handler {
 				return err
 			}
 			defer r.Body.Close()
+
+			fmt.Println(h.dmu)
+
+			mu := dsync.NewDRWMutex(r.Context(), "hoho", h.dmu.Lock)
+			mu.Lock("hoho", "ohho")
 
 			info, err := i.GetInfo()
 			if err != nil {

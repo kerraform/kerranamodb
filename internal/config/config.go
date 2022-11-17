@@ -34,7 +34,7 @@ type Config struct {
 	Lock     *Lock    `env:",prefix=LOCK_"`
 	Name     string   `env:"NAME,default=kerranamodb"`
 	HTTPPort int      `env:"HTTP_PORT,default=5000"`
-	GRPCPort int      `env:"GPRC_PORT,default=10020"`
+	GRPCPort int      `env:"GRPC_PORT,default=10020"`
 	Trace    *Trace   `env:",prefix=TRACE_"`
 }
 

@@ -99,7 +99,7 @@ func run(args []string) error {
 	}
 	t := tp.Tracer(cfg.Trace.Name)
 
-	var lopts []dlock.LockOptions
+	lopts := []dlock.LockOptions{dlock.WithLogger(logger.Named("dmutex"))}
 	if len(cfg.Lock.Nodes) > 0 {
 		lopts = append(lopts, dlock.WithStaticEndpoints(cfg.Lock.GetNodes()))
 	}
@@ -121,7 +121,6 @@ func run(args []string) error {
 		d, err = s3.NewDriver(logger, &s3.DriverOpts{
 			AccessKey:    cfg.Backend.S3.AccessKey,
 			Bucket:       cfg.Backend.S3.Bucket,
-			Dmu:          dmu,
 			Endpoint:     cfg.Backend.S3.Endpoint,
 			SecretKey:    cfg.Backend.S3.SecretKey,
 			Tracer:       t,
@@ -133,7 +132,6 @@ func run(args []string) error {
 		}
 	case driver.DriverTypeLocal:
 		d = local.NewDriver(&local.DriverConfig{
-			Dmu:      dmu,
 			Logger:   logger,
 			Tracer:   t,
 			RootPath: cfg.Backend.RootPath,
@@ -146,11 +144,13 @@ func run(args []string) error {
 
 	wg, ctx := errgroup.WithContext(ctx)
 	v1 := v1.New(&v1.HandlerConfig{
+		Dmu:    dmu,
 		Driver: d,
 		Logger: logger,
 	})
 
 	httpSvr := http.NewServer(&server.ServerConfig{
+		Dmu:    dmu,
 		Driver: d,
 		Logger: logger,
 		Metric: metrics,
@@ -175,6 +175,10 @@ func run(args []string) error {
 	logger.Info("grpc server started", zap.Int("port", cfg.GRPCPort))
 	wg.Go(func() error {
 		return grpcSvc.Serve()
+	})
+
+	wg.Go(func() error {
+		return dmu.Connect(ctx)
 	})
 
 	sigCh := make(chan os.Signal, 1)

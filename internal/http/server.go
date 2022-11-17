@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/kerraform/kerranamodb/internal/dlock"
 	"github.com/kerraform/kerranamodb/internal/driver"
 	"github.com/kerraform/kerranamodb/internal/metric"
 	"github.com/kerraform/kerranamodb/internal/middleware"
@@ -17,6 +18,7 @@ import (
 )
 
 type Server struct {
+	dmu            *dlock.DMutex
 	driver         driver.Driver
 	enableModule   bool
 	enableProvider bool
@@ -30,6 +32,7 @@ type Server struct {
 }
 
 type ServerConfig struct {
+	Dmu            *dlock.DMutex
 	Driver         driver.Driver
 	EnableModule   bool
 	EnableProvider bool
@@ -42,6 +45,7 @@ type ServerConfig struct {
 func NewServer(cfg *ServerConfig) *Server {
 	s := &Server{
 		driver:         cfg.Driver,
+		dmu:            cfg.Dmu,
 		enableModule:   cfg.EnableModule,
 		enableProvider: cfg.EnableProvider,
 		logger:         cfg.Logger,

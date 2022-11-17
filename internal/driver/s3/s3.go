@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
-	"github.com/kerraform/kerranamodb/internal/dlock"
 	"github.com/kerraform/kerranamodb/internal/driver"
 	"github.com/kerraform/kerranamodb/internal/id"
 	"go.opentelemetry.io/otel/trace"
@@ -25,7 +24,6 @@ var (
 
 type d struct {
 	bucket string
-	dmu    *dlock.DMutex
 	logger *zap.Logger
 	tracer trace.Tracer
 	s3     *s3.Client
@@ -34,7 +32,6 @@ type d struct {
 type DriverOpts struct {
 	AccessKey    string
 	Bucket       string
-	Dmu          *dlock.DMutex
 	Endpoint     string
 	SecretKey    string
 	Tracer       trace.Tracer
@@ -69,7 +66,6 @@ func NewDriver(logger *zap.Logger, opts *DriverOpts) (driver.Driver, error) {
 
 	return &d{
 		bucket: opts.Bucket,
-		dmu:    opts.Dmu,
 		logger: logger,
 		tracer: opts.Tracer,
 		s3:     s3Client,
