@@ -21,6 +21,10 @@ type DMutex struct {
 	DSync *dsync.Dsync
 	Ready bool
 
+	mu        sync.RWMutex
+	isWriting map[DLockID]bool
+	isReading map[DLockID]bool
+
 	endpoints []string
 	logger    *zap.Logger
 }
@@ -106,6 +110,38 @@ func (dmu *DMutex) Connect(ctx context.Context) error {
 	dmu.DSync = ds
 	dmu.Ready = true
 	return nil
+}
+
+func (dmu *DMutex) SetReading(lid DLockID, v bool) {
+	dmu.mu.RLock()
+	defer dmu.mu.RUnlock()
+	dmu.isReading[lid] = v
+}
+
+func (dmu *DMutex) IsReading(lid DLockID) bool {
+	dmu.mu.RLock()
+	defer dmu.mu.RUnlock()
+	if v, ok := dmu.isReading[lid]; ok {
+		return v
+	}
+
+	return false
+}
+
+func (dmu *DMutex) SetWriting(lid DLockID, v bool) {
+	dmu.mu.Lock()
+	defer dmu.mu.Unlock()
+	dmu.isWriting[lid] = v
+}
+
+func (dmu *DMutex) IsWriting(lid DLockID) bool {
+	dmu.mu.RLock()
+	defer dmu.mu.RUnlock()
+	if v, ok := dmu.isReading[lid]; ok {
+		return v
+	}
+
+	return false
 }
 
 func (dmu *DMutex) connect(ctx context.Context, cfg *DLockerConfig) (dsync.NetLocker, error) {

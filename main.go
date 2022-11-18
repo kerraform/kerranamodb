@@ -171,6 +171,7 @@ func run(args []string) error {
 	grpcSvc := dlock.NewLockService(&dlock.LockServiceOptions{
 		Port:   cfg.GRPCPort,
 		Logger: logger,
+		Dmu:    dmu,
 	})
 	logger.Info("grpc server started", zap.Int("port", cfg.GRPCPort))
 	wg.Go(func() error {

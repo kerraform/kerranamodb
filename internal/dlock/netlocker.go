@@ -56,6 +56,7 @@ func (l *DLocker) RLock(args dsync.LockArgs) (bool, error) {
 		return false, err
 	}
 
+	l.logger.Info("get read lock availability", zap.Bool("available", resp.Msg.GetAvailable()))
 	return resp.Msg.GetAvailable(), nil
 }
 
@@ -96,7 +97,7 @@ func (l *DLocker) RUnlock(args dsync.LockArgs) (bool, error) {
 		return false, err
 	}
 
-	l.logger.Info("get lock availability", zap.Bool("available", resp.Msg.GetAvailable()))
+	l.logger.Info("get read unlock availability", zap.Bool("available", resp.Msg.GetAvailable()))
 	return resp.Msg.GetAvailable(), nil
 }
 
@@ -116,6 +117,7 @@ func (l *DLocker) Unlock(args dsync.LockArgs) (bool, error) {
 		return false, err
 	}
 
+	l.logger.Info("get unlock availability", zap.Bool("available", resp.Msg.GetAvailable()))
 	return resp.Msg.GetAvailable(), nil
 }
 
