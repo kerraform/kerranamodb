@@ -107,7 +107,7 @@ func run(args []string) error {
 	}
 
 	if v := cfg.Lock.ServiceDiscoveryEndpoint; v != "" {
-		lopts = append(lopts, dlock.WithServiceDiscovery(v, cfg.Lock.ServiceDiscoveryNodeCount, cfg.Lock.HostIP))
+		lopts = append(lopts, dlock.WithServiceDiscovery(v, cfg.Lock.ServiceDiscoveryNodeCount, cfg.Lock.HostIP, cfg.Lock.ServiceDiscoveryPort))
 	}
 
 	if v := cfg.Lock.ServiceDiscoveryTimeout; v != 0 {
@@ -117,6 +117,7 @@ func run(args []string) error {
 	logger.Info("setup dlock",
 		zap.Any("nodes", cfg.Lock.Nodes),
 		zap.String("hostIP", cfg.Lock.HostIP),
+		zap.Int("serviceDiscoveryPort", cfg.Lock.ServiceDiscoveryPort),
 		zap.Int("serviceDiscoveryTimeout", cfg.Lock.ServiceDiscoveryTimeout),
 		zap.String("serviceDiscoveryEndpoint", cfg.Lock.ServiceDiscoveryEndpoint),
 		zap.Int("serviceDiscoveryNodeCound", cfg.Lock.ServiceDiscoveryNodeCount),

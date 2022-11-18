@@ -15,6 +15,7 @@ type options struct {
 	expected  int
 	hostIP    string
 	sd        string
+	port      int
 	endpoints []string
 	logger    *zap.Logger
 	timeout   *time.Duration
@@ -72,9 +73,10 @@ func WithLogger(logger *zap.Logger) LockOptions {
 	}
 }
 
-func WithServiceDiscovery(sd string, count int, hostIP string) LockOptions {
+func WithServiceDiscovery(sd string, count int, hostIP string, port int) LockOptions {
 	return func(o *options) {
 		o.expected = count
+		o.port = port
 		o.hostIP = hostIP
 		o.sd = sd
 	}
@@ -120,7 +122,7 @@ func NewDMutex(ctx context.Context, opts ...LockOptions) (*DMutex, error) {
 			return nil, err
 		}
 		for _, ip := range ips {
-			eps = append(eps, ip.String())
+			eps = append(eps, fmt.Sprintf("http://%s:%d", ip.String(), o.port))
 		}
 	}
 
@@ -337,16 +339,18 @@ LOOP:
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case <-time.After(1000 * time.Millisecond):
+		case <-time.After(10000 * time.Millisecond):
 			ips, err := net.LookupIP(endpoint)
 			if err != nil {
-				return nil, err
+				dmu.logger.Warn("failed to lookup ip", zap.String("endpoint", endpoint), zap.Error(err))
+				continue
 			}
 
 			dmu.logger.Debug("service discovery ips", zap.Int("count", len(ips)), zap.Int("expected", dmu.expected))
 			if len(ips) == dmu.expected {
 				for _, ip := range ips {
 					if ipv4 := ip.To4(); ipv4 != nil {
+						dmu.logger.Debug("fetched ip", zap.String("ip", ipv4.String()))
 						if ipv4.String() != dmu.hostIP {
 							res = append(res, ipv4)
 						}

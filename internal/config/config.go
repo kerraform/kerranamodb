@@ -42,6 +42,7 @@ type Lock struct {
 	ServiceDiscoveryEndpoint  string `env:"SERVICE_DISCOVERY_ENDPOINT"`
 	ServiceDiscoveryNodeCount int    `env:"SERVICE_DISCOVERY_NODE_COUNT"`
 	ServiceDiscoveryTimeout   int    `env:"SERVICE_DISCOVERY_TIMEOUT"`
+	ServiceDiscoveryPort   int    `env:"SERVICE_DISCOVERY_PORT"`
 	HostIP                    string `env:"HOST_IP"`
 	Nodes                     string `env:"NODES"`
 }
