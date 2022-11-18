@@ -16,10 +16,11 @@ type options struct {
 }
 
 type DMutex struct {
+	Lock  *dsync.Dsync
+	Ready bool
+
 	endpoints []string
-Lock      *dsync.Dsync
 	ips       []string
-	ready     bool
 	logger    *zap.Logger
 }
 
@@ -90,18 +91,22 @@ func (dmu *DMutex) Connect(ctx context.Context) error {
 		}()
 	}
 
+	wg.Wait()
 	ds, err := dsync.New(lks)
 	if err != nil {
-		return nil
+		dmu.logger.Debug("failed to connect", zap.Error(err))
+		return err
 	}
 
+	dmu.logger.Info("dsync initialized", zap.Int("node", len(dmu.endpoints)))
 	dmu.Lock = ds
-	dmu.ready = true
+	dmu.Ready = true
 	return nil
 }
 
 func (dmu *DMutex) connect(ctx context.Context, endpoint string) (dsync.NetLocker, error) {
 	l := NewDLocker(ctx, endpoint)
+	dmu.logger.Info("connected to node", zap.String("endpoint", endpoint))
 	return l, nil
 }
 

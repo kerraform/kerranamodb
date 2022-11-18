@@ -12,14 +12,7 @@ import (
 	"github.com/kerraform/kerranamodb/internal/errors"
 	"github.com/kerraform/kerranamodb/internal/handler"
 	"github.com/kerraform/kerranamodb/internal/middleware"
-	"github.com/minio/dsync/v3"
 	"go.uber.org/zap"
-)
-
-type DataType string
-
-const (
-	DataTypeAddGPGKey DataType = "gpg-keys"
 )
 
 type Handler struct {
@@ -48,93 +41,100 @@ func (h *Handler) Handler() http.Handler {
 
 		switch method {
 		case dynamodb.OperationTypeDeleteItem:
-			var i api.DeleteInput
-
-			if err := json.NewDecoder(r.Body).Decode(&i); err != nil {
-				return err
-			}
-			defer r.Body.Close()
-
-			lid, err := i.GetLockID()
-			if err != nil {
-				return errors.Wrap(err, errors.WithBadRequest("failed to get lock id"))
-			}
-
-			return h.driver.DeleteLock(r.Context(), i.TableName, lid)
+			return h.deleteLock(w, r)
 		case dynamodb.OperationTypeGetItem:
-			var i api.GetInput
-
-			if err := json.NewDecoder(r.Body).Decode(&i); err != nil {
-				return err
-			}
-			defer r.Body.Close()
-
-			lid, err := i.GetLockID()
-			if err != nil {
-				return errors.Wrap(err, errors.WithBadRequest("failed to get lock id"))
-			}
-
-			info, err := h.driver.GetLock(r.Context(), i.TableName, lid)
-			if err != nil {
-				return err
-			}
-
-			r := &api.PutInput{
-				TableName: i.TableName,
-				Item: map[string]map[string]string{
-					api.InfoKey: {
-						api.SKey: string(info),
-					},
-					api.LockIDKey: {
-						api.SKey: string(lid),
-					},
-				},
-			}
-
-			return json.NewEncoder(w).Encode(r)
+			return h.getLock(w, r)
 		case dynamodb.OperationTypePutItem:
-			var i api.PutInput
-
-			if err := json.NewDecoder(r.Body).Decode(&i); err != nil {
-				return err
-			}
-			defer r.Body.Close()
-
-			fmt.Println(h.dmu)
-
-			mu := dsync.NewDRWMutex(r.Context(), "hoho", h.dmu.Lock)
-			mu.Lock("hoho", "ohho")
-
-			info, err := i.GetInfo()
-			if err != nil {
-				return errors.Wrap(err, errors.WithBadRequest("failed to get info"))
-			}
-
-			if info == "" {
-				return errors.Wrap(err, errors.WithBadRequest("empty info"))
-			}
-
-			lid, err := i.GetLockID()
-			if err != nil {
-				return errors.Wrap(err, errors.WithBadRequest("failed to get lock id"))
-			}
-
-			hasLock, err := h.driver.HasLock(r.Context(), i.TableName, lid)
-			if err != nil {
-				return err
-			}
-			if hasLock {
-				return errors.Wrap(fmt.Errorf("has lock"), errors.WithConditionalCheckFailedException())
-			}
-
-			if err := h.driver.SaveLock(r.Context(), i.TableName, lid, driver.Info(info)); err != nil {
-				return err
-			}
-
-			return nil
+			return h.putLock(w, r)
 		default:
 			err := fmt.Errorf("method: %s not allowed", method)
 			return errors.Wrap(err, errors.WithBadRequest(err.Error()))
 		}
 	})
+}
+
+func (h *Handler) deleteLock(w http.ResponseWriter, r *http.Request) error {
+	var i api.DeleteInput
+
+	if err := json.NewDecoder(r.Body).Decode(&i); err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	lid, err := i.GetLockID()
+	if err != nil {
+		return errors.Wrap(err, errors.WithBadRequest("failed to get lock id"))
+	}
+
+	return h.driver.DeleteLock(r.Context(), i.TableName, lid)
+}
+
+func (h *Handler) getLock(w http.ResponseWriter, r *http.Request) error {
+	var i api.GetInput
+
+	if err := json.NewDecoder(r.Body).Decode(&i); err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	lid, err := i.GetLockID()
+	if err != nil {
+		return errors.Wrap(err, errors.WithBadRequest("failed to get lock id"))
+	}
+
+	info, err := h.driver.GetLock(r.Context(), i.TableName, lid)
+	if err != nil {
+		return err
+	}
+
+	res := &api.PutInput{
+		TableName: i.TableName,
+		Item: map[string]map[string]string{
+			api.InfoKey: {
+				api.SKey: string(info),
+			},
+			api.LockIDKey: {
+				api.SKey: string(lid),
+			},
+		},
+	}
+
+	return json.NewEncoder(w).Encode(res)
+}
+
+func (h *Handler) putLock(w http.ResponseWriter, r *http.Request) error {
+	var i api.PutInput
+
+	if err := json.NewDecoder(r.Body).Decode(&i); err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	info, err := i.GetInfo()
+	if err != nil {
+		return errors.Wrap(err, errors.WithBadRequest("failed to get info"))
+	}
+
+	if info == "" {
+		return errors.Wrap(err, errors.WithBadRequest("empty info"))
+	}
+
+	lid, err := i.GetLockID()
+	if err != nil {
+		return errors.Wrap(err, errors.WithBadRequest("failed to get lock id"))
+	}
+
+	hasLock, err := h.driver.HasLock(r.Context(), i.TableName, lid)
+	if err != nil {
+		return err
+	}
+	if hasLock {
+		return errors.Wrap(fmt.Errorf("state is locked"), errors.WithConditionalCheckFailedException())
+	}
+
+	if err := h.driver.SaveLock(r.Context(), i.TableName, lid, driver.Info(info)); err != nil {
+		return err
+	}
+
+	return nil
 }

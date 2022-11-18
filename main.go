@@ -187,6 +187,7 @@ func run(args []string) error {
 	case v := <-sigCh:
 		logger.Info("received signal %d", zap.String("signal", v.String()))
 	case <-ctx.Done():
+		return ctx.Err()
 	}
 
 	// Context for shutdown
