@@ -3,13 +3,15 @@ kind: Service
 metadata:
   name: karranamodb
 spec:
-  clusterIP: "None" # Headless service
+  clusterIP: None # Headless service
   selector:
     app: karranamodb
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 80
       targetPort: 8080
-    - protocol: TCP
+    - name: grpc
+      protocol: TCP
       port: 15000
       targetPort: 15000

@@ -1,5 +1,7 @@
 DOCKERCMD = docker
 
+IMG ?= karranamodb:latest
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -113,7 +115,7 @@ run-jaeger:
 run-service-discovery:
 	@LOCK_SERVICE_DISCOVERY_ENDPOINT=localhost \
 		LOCK_SERVICE_DISCOVERY_NODE_COUNT=4 \
-		LOCK_SERVICE_DISCOVERY_TIMEOUT=300 \
+		LOCK_SERVICE_DISCOVERY_TIMEOUT=3 \
 		HTTP_PORT=8888 GRPC_PORT=18888 \
 		go run ./main.go
 

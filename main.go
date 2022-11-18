@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -122,6 +123,7 @@ func run(args []string) error {
 	)
 	dmu, err := dlock.NewDMutex(ctx, lopts...)
 	if err != nil {
+		logger.Error("failed to create new lock", zap.Error(err))
 		return err
 	}
 
@@ -191,6 +193,10 @@ func run(args []string) error {
 
 	wg.Go(func() error {
 		return dmu.Connect(ctx)
+	})
+
+	wg.Go(func() error {
+		return errors.New("hoho")
 	})
 
 	sigCh := make(chan os.Signal, 1)

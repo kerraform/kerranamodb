@@ -4,7 +4,7 @@ metadata:
   name: kerranamodb
 build:
   artifacts:
-    - image: kerranamodb
+    - image: karranamodb
       docker:
         dockerfile: ./Dockerfile
   tagPolicy:

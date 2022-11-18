@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: karranamodb
-          image: karranamodb
+          image: karranamodb:latest
           ports:
             - name: grpc
               containerPort: 15000
@@ -30,9 +30,9 @@ spec:
             - name: LOG_LEVEL
               value: debug
             - name: HTTP_PORT
-              value: 8080
+              value: "8080"
             - name: GRPC_PORT
-              value: 15000
+              value: "15000"
             - name: LOCK_HOST_IP
               valueFrom:
                 fieldRef:
@@ -40,6 +40,6 @@ spec:
             - name: LOCK_SERVICE_DISCOVERY_ENDPOINT
               value: kerranamodb.kerranamodb.svc.cluster.local
             - name: LOCK_SERVICE_DISCOVERY_NODE_COUNT
-              value: 4
+              value: "4"
             - name: LOCK_SERVICE_DISCOVERY_TIMEOUT
-              value: 180
+              value: "180"
