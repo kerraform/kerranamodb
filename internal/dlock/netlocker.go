@@ -47,8 +47,8 @@ func (l *DLocker) RLock(args dsync.LockArgs) (bool, error) {
 		connect.NewRequest(
 			&lockv1.RLockRequest{
 				Uid:   args.UID,
-				Table: DLockID(args.Source).Table(),
-				Key:   DLockID(args.Source).Key(),
+				Table: DLockID(args.Resource).Table(),
+				Key:   DLockID(args.Resource).Key(),
 			},
 		),
 	)
@@ -66,8 +66,8 @@ func (l *DLocker) Lock(args dsync.LockArgs) (bool, error) {
 		connect.NewRequest(
 			&lockv1.LockRequest{
 				Uid:   args.UID,
-				Table: DLockID(args.Source).Table(),
-				Key:   DLockID(args.Source).Key(),
+				Table: DLockID(args.Resource).Table(),
+				Key:   DLockID(args.Resource).Key(),
 			},
 		),
 	)
@@ -87,8 +87,8 @@ func (l *DLocker) RUnlock(args dsync.LockArgs) (bool, error) {
 		connect.NewRequest(
 			&lockv1.RUnlockRequest{
 				Uid:   args.UID,
-				Table: DLockID(args.Source).Table(),
-				Key:   DLockID(args.Source).Key(),
+				Table: DLockID(args.Resource).Table(),
+				Key:   DLockID(args.Resource).Key(),
 			},
 		),
 	)
@@ -107,8 +107,8 @@ func (l *DLocker) Unlock(args dsync.LockArgs) (bool, error) {
 		connect.NewRequest(
 			&lockv1.UnlockRequest{
 				Uid:   args.UID,
-				Table: DLockID(args.Source).Table(),
-				Key:   DLockID(args.Source).Key(),
+				Table: DLockID(args.Resource).Table(),
+				Key:   DLockID(args.Resource).Key(),
 			},
 		),
 	)
