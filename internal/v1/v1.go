@@ -55,7 +55,7 @@ func (h *Handler) Handler() http.Handler {
 	})
 }
 
-func (h *Handler) deleteLock(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) deleteLock(_ http.ResponseWriter, r *http.Request) error {
 	var i api.DeleteInput
 
 	if err := json.NewDecoder(r.Body).Decode(&i); err != nil {

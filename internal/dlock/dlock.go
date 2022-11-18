@@ -140,7 +140,7 @@ func (dmu *DMutex) RLock(ctx context.Context, dlid DLockID) (*dsync.DRWMutex, er
 	ch := make(chan bool)
 	defer close(ch)
 
-	go func(id DLockID) {
+	go func(dlid DLockID) {
 		ch <- mu.GetRLock(string(dlid), "", 1*time.Second)
 	}(dlid)
 

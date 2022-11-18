@@ -76,7 +76,7 @@ func (l *DLocker) Lock(args dsync.LockArgs) (bool, error) {
 		return false, err
 	}
 
-	l.logger.Info("get lock availability", zap.Bool("avilable", resp.Msg.GetAvailable()))
+	l.logger.Info("get lock availability", zap.Bool("available", resp.Msg.GetAvailable()))
 	return resp.Msg.GetAvailable(), nil
 }
 
