@@ -28,27 +28,32 @@ type DMutex struct {
 }
 
 type dmutex struct {
+	logger    *zap.Logger
 	mu        *sync.RWMutex
 	isReading bool
 	isWriting bool
 }
 
 func (d *dmutex) Lock() {
+	d.logger.Debug("lock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
 	d.mu.Lock()
 	d.isWriting = true
 }
 
 func (d *dmutex) UnLock() {
+	d.logger.Debug("unlock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
 	d.isWriting = true
 	d.mu.Unlock()
 }
 
 func (d *dmutex) Rlock() {
+	d.logger.Debug("rlock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
 	d.mu.RLock()
 	d.isReading = true
 }
 
 func (d *dmutex) RUnlock() {
+	d.logger.Debug("runlock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
 	d.isReading = false
 	d.mu.RUnlock()
 }
@@ -150,28 +155,31 @@ func (dmu *DMutex) SetUnReading(lid DLockID) {
 
 func (dmu *DMutex) setReading(lid DLockID, v bool) {
 	dmu.mu.Lock()
-	defer func() {
-		dmu.mu.Unlock()
-		dmu.logger.Debug("unlock root mutex")
-	}()
-	// mu, ok := dmu.mus[lid]
-	// if ok {
-	// if v {
-	// 	dmu.logger.Debug("rlocked", zap.String("dlid", string(lid)))
-	// 	mu.Rlock()
-	// 	return
-	// }
+	defer dmu.mu.Unlock()
+	mu, ok := dmu.mus[lid]
+	if ok {
+		if v {
+			mu.Rlock()
+			return
+		}
 
-	// dmu.logger.Debug("runlocked", zap.String("dlid", string(lid)))
-	// mu.RUnlock()
-	// return
-	// }
+		mu.RUnlock()
+		return
+	}
 
-	// dmu.mus[lid] = &dmutex{
-	// 	mu:        &sync.RWMutex{},
-	// 	isReading: v,
-	// }
+	m := &dmutex{
+		logger:    dmu.logger.Named("dmutex").With(zap.String("dlid", string(lid))),
+		mu:        &sync.RWMutex{},
+		isReading: v,
+	}
 
+	if v {
+		m.Rlock()
+	} else {
+		m.RUnlock()
+	}
+
+	dmu.mus[lid] = m
 	dmu.logger.Debug("initial set reading", zap.String("dlid", string(lid)))
 }
 
@@ -210,12 +218,20 @@ func (dmu *DMutex) setWriting(lid DLockID, v bool) {
 		return
 	}
 
-	dmu.mus[lid] = &dmutex{
+	m := &dmutex{
+		logger:    dmu.logger.Named("dmutex").With(zap.String("dlid", string(lid))),
 		mu:        &sync.RWMutex{},
 		isWriting: v,
 		isReading: v,
 	}
 
+	if v {
+		m.Rlock()
+	} else {
+		m.RUnlock()
+	}
+
+	dmu.mus[lid] = m
 	dmu.logger.Debug("initial write reading", zap.String("dlid", string(lid)))
 }
 
@@ -239,6 +255,9 @@ func (dmu *DMutex) connect(ctx context.Context, cfg *DLockerConfig) (dsync.NetLo
 }
 
 func (dmu *DMutex) Lock(ctx context.Context, dlid DLockID) (*dsync.DRWMutex, error) {
+	dmu.SetWriting(dlid)
+	defer dmu.SetUnWriting(dlid)
+
 	mu := dsync.NewDRWMutex(ctx, string(dlid), dmu.DSync)
 	ch := make(chan bool)
 	defer close(ch)

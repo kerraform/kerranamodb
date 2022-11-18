@@ -48,7 +48,7 @@ func NewLoggingInterceptor(logger *zap.Logger) connect.UnaryInterceptorFunc {
 				l,
 			)
 
-			l.Info("access to lock node")
+			l.Info("received request to lock node")
 			return next(ctx, req)
 		})
 	}
