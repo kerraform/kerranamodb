@@ -39,8 +39,11 @@ type Config struct {
 }
 
 type Lock struct {
-	ServiceDiscoveryEndpoint string `env:"SERVICE_DISCOVERY_ENDPOINT"`
-	Nodes                    string `env:"NODES"`
+	ServiceDiscoveryEndpoint  string `env:"SERVICE_DISCOVERY_ENDPOINT"`
+	ServiceDiscoveryNodeCount int    `env:"SERVICE_DISCOVERY_NODE_COUNT"`
+	ServiceDiscoveryTimeout   int    `env:"SERVICE_DISCOVERY_TIMEOUT"`
+	HostIP                    string `env:"HOST_IP"`
+	Nodes                     string `env:"NODES"`
 }
 
 func (l *Lock) GetNodes() []string {

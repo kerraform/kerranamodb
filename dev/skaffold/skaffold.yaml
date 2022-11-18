@@ -1,0 +1,20 @@
+apiVersion: skaffold/v2beta29
+kind: Config
+metadata:
+  name: kerranamodb
+build:
+  artifacts:
+    - image: kerranamodb
+      docker:
+        dockerfile: ./Dockerfile
+  tagPolicy:
+    gitCommit: {}
+  local:
+    concurrency: 1
+
+deploy:
+  kustomize:
+    paths:
+      - ./dev/skaffold
+  logs:
+    prefix: container

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/kerraform/kerranamodb/internal/config"
 	"github.com/kerraform/kerranamodb/internal/dlock"
@@ -105,10 +106,20 @@ func run(args []string) error {
 	}
 
 	if v := cfg.Lock.ServiceDiscoveryEndpoint; v != "" {
-		lopts = append(lopts, dlock.WithServiceDiscovery(v))
+		lopts = append(lopts, dlock.WithServiceDiscovery(v, cfg.Lock.ServiceDiscoveryNodeCount, cfg.Lock.HostIP))
 	}
 
-	logger.Info("setup dlock")
+	if v := cfg.Lock.ServiceDiscoveryTimeout; v != 0 {
+		lopts = append(lopts, dlock.WithTimeout(time.Duration(v)*time.Second))
+	}
+
+	logger.Info("setup dlock",
+		zap.Any("nodes", cfg.Lock.Nodes),
+		zap.String("hostIP", cfg.Lock.HostIP),
+		zap.Int("serviceDiscoveryTimeout", cfg.Lock.ServiceDiscoveryTimeout),
+		zap.String("serviceDiscoveryEndpoint", cfg.Lock.ServiceDiscoveryEndpoint),
+		zap.Int("serviceDiscoveryNodeCound", cfg.Lock.ServiceDiscoveryNodeCount),
+	)
 	dmu, err := dlock.NewDMutex(ctx, lopts...)
 	if err != nil {
 		return err

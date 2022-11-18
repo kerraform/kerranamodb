@@ -12,19 +12,25 @@ import (
 )
 
 type options struct {
+	expected  int
+	hostIP    string
 	sd        string
 	endpoints []string
 	logger    *zap.Logger
+	timeout   *time.Duration
 }
 
 type DMutex struct {
 	DSync *dsync.Dsync
 	Ready bool
 
-	mu        *sync.RWMutex
-	mus       map[DLockID]*dmutex
+	mu  *sync.RWMutex
+	mus map[DLockID]*dmutex
+
 	endpoints []string
+	expected  int
 	logger    *zap.Logger
+	hostIP    string
 }
 
 type dmutex struct {
@@ -66,8 +72,10 @@ func WithLogger(logger *zap.Logger) LockOptions {
 	}
 }
 
-func WithServiceDiscovery(sd string) LockOptions {
+func WithServiceDiscovery(sd string, count int, hostIP string) LockOptions {
 	return func(o *options) {
+		o.expected = count
+		o.hostIP = hostIP
 		o.sd = sd
 	}
 }
@@ -75,6 +83,12 @@ func WithServiceDiscovery(sd string) LockOptions {
 func WithStaticEndpoints(endpoints []string) LockOptions {
 	return func(o *options) {
 		o.endpoints = endpoints
+	}
+}
+
+func WithTimeout(timeout time.Duration) LockOptions {
+	return func(o *options) {
+		o.timeout = &timeout
 	}
 }
 
@@ -86,9 +100,22 @@ func NewDMutex(ctx context.Context, opts ...LockOptions) (*DMutex, error) {
 		opt(o)
 	}
 
+	if o.timeout != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, *o.timeout)
+		defer cancel()
+	}
+
+	dmu := &DMutex{
+		expected: o.expected,
+		logger:   o.logger,
+		mu:       &sync.RWMutex{},
+		mus:      map[DLockID]*dmutex{},
+	}
+
 	var eps []string
 	if o.sd != "" {
-		ips, err := fetchNodes(o.sd)
+		ips, err := dmu.fetchNodes(ctx, o.sd)
 		if err != nil {
 			return nil, err
 		}
@@ -101,12 +128,8 @@ func NewDMutex(ctx context.Context, opts ...LockOptions) (*DMutex, error) {
 		eps = append(eps, o.endpoints...)
 	}
 
-	return &DMutex{
-		endpoints: eps,
-		logger:    o.logger,
-		mu:        &sync.RWMutex{},
-		mus:       map[DLockID]*dmutex{},
-	}, nil
+	dmu.endpoints = eps
+	return dmu, nil
 }
 
 func (dmu *DMutex) Connect(ctx context.Context) error {
@@ -304,17 +327,34 @@ func (dmu *DMutex) RLock(ctx context.Context, dlid DLockID) (*dsync.DRWMutex, er
 	}
 }
 
-func fetchNodes(endpoint string) ([]net.IP, error) {
+func (dmu *DMutex) fetchNodes(ctx context.Context, endpoint string) ([]net.IP, error) {
 	res := []net.IP{}
 
-	ips, err := net.LookupIP(endpoint)
-	if err != nil {
-		return nil, err
-	}
+	dmu.logger.Debug("fetching service discovery endpoint", zap.String("endpoint", endpoint))
 
-	for _, ip := range ips {
-		if ipv4 := ip.To4(); ipv4 != nil {
-			res = append(res, ipv4)
+LOOP:
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(1000 * time.Millisecond):
+			ips, err := net.LookupIP(endpoint)
+			if err != nil {
+				return nil, err
+			}
+
+			dmu.logger.Debug("service discovery ips", zap.Int("count", len(ips)), zap.Int("expected", dmu.expected))
+			if len(ips) == dmu.expected {
+				for _, ip := range ips {
+					if ipv4 := ip.To4(); ipv4 != nil {
+						if ipv4.String() != dmu.hostIP {
+							res = append(res, ipv4)
+						}
+					}
+				}
+
+				break LOOP
+			}
 		}
 	}
 
