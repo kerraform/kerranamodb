@@ -2,8 +2,10 @@ package dlock
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/minio/dsync/v3"
 	"go.uber.org/zap"
@@ -16,11 +18,10 @@ type options struct {
 }
 
 type DMutex struct {
-	Lock  *dsync.Dsync
+	DSync *dsync.Dsync
 	Ready bool
 
 	endpoints []string
-	ips       []string
 	logger    *zap.Logger
 }
 
@@ -81,7 +82,10 @@ func (dmu *DMutex) Connect(ctx context.Context) error {
 		wg.Add(1)
 		e := e
 		go func() {
-			l, err := dmu.connect(ctx, e)
+			l, err := dmu.connect(ctx, &DLockerConfig{
+				endpoint: e,
+				logger:   dmu.logger.Named("dlocker").With(zap.String("endpoint", e)),
+			})
 			if err != nil {
 				return
 			}
@@ -99,15 +103,36 @@ func (dmu *DMutex) Connect(ctx context.Context) error {
 	}
 
 	dmu.logger.Info("dsync initialized", zap.Int("node", len(dmu.endpoints)))
-	dmu.Lock = ds
+	dmu.DSync = ds
 	dmu.Ready = true
 	return nil
 }
 
-func (dmu *DMutex) connect(ctx context.Context, endpoint string) (dsync.NetLocker, error) {
-	l := NewDLocker(ctx, endpoint)
-	dmu.logger.Info("connected to node", zap.String("endpoint", endpoint))
+func (dmu *DMutex) connect(ctx context.Context, cfg *DLockerConfig) (dsync.NetLocker, error) {
+	l := NewDLocker(ctx, cfg)
+	dmu.logger.Info("connected to node", zap.String("endpoint", cfg.endpoint))
 	return l, nil
+}
+
+func (dmu *DMutex) Lock(ctx context.Context, dlid DLockID) (*dsync.DRWMutex, error) {
+	mu := dsync.NewDRWMutex(ctx, string(dlid), dmu.DSync)
+	ch := make(chan bool)
+	defer close(ch)
+
+	go func(id DLockID) {
+		ch <- mu.GetLock(string(dlid), "", 1*time.Second)
+	}(dlid)
+
+	select {
+	case success := <-ch:
+		if success {
+			return mu, nil
+		}
+
+		return nil, fmt.Errorf("state is locked")
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 func fetchNodes(endpoint string) ([]net.IP, error) {

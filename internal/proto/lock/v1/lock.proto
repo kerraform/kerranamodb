@@ -11,12 +11,46 @@ service LockService {
   rpc RUnlock(RUnlockRequest) returns (RUnlockResponse) {}
 }
 
-message LockRequest {}
-message UnlockRequest {}
-message RLockRequest {}
-message RUnlockRequest {}
+message LockRequest {
+  string uid = 1;
+  string source = 2;
+  string table = 3;
+  string key = 4;
+}
 
-message LockResponse {}
-message UnlockResponse {}
-message RLockResponse {}
-message RUnlockResponse {}
+message UnlockRequest {
+  string uid = 1;
+  string source = 2;
+  string table = 3;
+  string key = 4;
+}
+
+message RLockRequest {
+  string uid = 1;
+  string source = 2;
+  string table = 3;
+  string key = 4;
+}
+
+message RUnlockRequest {
+  string uid = 1;
+  string source = 2;
+  string table = 3;
+  string key = 4;
+}
+
+message LockResponse {
+  bool available = 1;
+}
+
+message UnlockResponse {
+  bool available = 1;
+}
+
+message RLockResponse {
+  bool available = 1;
+}
+
+message RUnlockResponse {
+  bool available = 1;
+}

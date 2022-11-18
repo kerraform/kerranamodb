@@ -3,7 +3,6 @@ package dlock
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/bufbuild/connect-go"
@@ -52,25 +51,25 @@ func (s *Server) Serve() error {
 }
 
 func (s *LockService) Lock(ctx context.Context, req *connect.Request[lockv1.LockRequest]) (*connect.Response[lockv1.LockResponse], error) {
-	log.Println("Request headers: ", req.Header())
-	res := connect.NewResponse(&lockv1.LockResponse{})
-	return res, nil
+	return connect.NewResponse(&lockv1.LockResponse{
+		Available: true,
+	}), nil
 }
 
 func (s *LockService) Unlock(ctx context.Context, req *connect.Request[lockv1.UnlockRequest]) (*connect.Response[lockv1.UnlockResponse], error) {
-	log.Println("Request headers: ", req.Header())
-	res := connect.NewResponse(&lockv1.UnlockResponse{})
-	return res, nil
+	return connect.NewResponse(&lockv1.UnlockResponse{
+		Available: true,
+	}), nil
 }
 
 func (s *LockService) RLock(ctx context.Context, req *connect.Request[lockv1.RLockRequest]) (*connect.Response[lockv1.RLockResponse], error) {
-	log.Println("Request headers: ", req.Header())
-	res := connect.NewResponse(&lockv1.RLockResponse{})
-	return res, nil
+	return connect.NewResponse(&lockv1.RLockResponse{
+		Available: true,
+	}), nil
 }
 
 func (s *LockService) RUnlock(ctx context.Context, req *connect.Request[lockv1.RUnlockRequest]) (*connect.Response[lockv1.RUnlockResponse], error) {
-	log.Println("Request headers: ", req.Header())
-	res := connect.NewResponse(&lockv1.RUnlockResponse{})
-	return res, nil
+	return connect.NewResponse(&lockv1.RUnlockResponse{
+		Available: true,
+	}), nil
 }

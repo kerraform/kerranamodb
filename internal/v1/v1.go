@@ -1,9 +1,11 @@
 package v1
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/kerraform/kerranamodb/internal/dlock"
 	"github.com/kerraform/kerranamodb/internal/driver"
@@ -131,6 +133,16 @@ func (h *Handler) putLock(w http.ResponseWriter, r *http.Request) error {
 	if hasLock {
 		return errors.Wrap(fmt.Errorf("state is locked"), errors.WithConditionalCheckFailedException())
 	}
+
+	dlid := dlock.From(i.TableName, string(lid))
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+	lock, err := h.dmu.Lock(ctx, dlid)
+	if err != nil {
+		h.logger.Error("someone in the cluster has the lock or trying to get it", zap.Error(err))
+		return errors.Wrap(fmt.Errorf("state is locked"), errors.WithConditionalCheckFailedException())
+	}
+	defer lock.Unlock()
 
 	if err := h.driver.SaveLock(r.Context(), i.TableName, lid, driver.Info(info)); err != nil {
 		return err
