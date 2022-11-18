@@ -135,6 +135,27 @@ func (dmu *DMutex) Lock(ctx context.Context, dlid DLockID) (*dsync.DRWMutex, err
 	}
 }
 
+func (dmu *DMutex) RLock(ctx context.Context, dlid DLockID) (*dsync.DRWMutex, error) {
+	mu := dsync.NewDRWMutex(ctx, string(dlid), dmu.DSync)
+	ch := make(chan bool)
+	defer close(ch)
+
+	go func(id DLockID) {
+		ch <- mu.GetRLock(string(dlid), "", 1*time.Second)
+	}(dlid)
+
+	select {
+	case success := <-ch:
+		if success {
+			return mu, nil
+		}
+
+		return nil, fmt.Errorf("state is locked")
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
 func fetchNodes(endpoint string) ([]net.IP, error) {
 	res := []net.IP{}
 

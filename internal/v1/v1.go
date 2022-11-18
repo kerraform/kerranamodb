@@ -11,7 +11,7 @@ import (
 	"github.com/kerraform/kerranamodb/internal/driver"
 	"github.com/kerraform/kerranamodb/internal/dynamodb"
 	"github.com/kerraform/kerranamodb/internal/dynamodb/api"
-	"github.com/kerraform/kerranamodb/internal/errors"
+	kerrors "github.com/kerraform/kerranamodb/internal/errors"
 	"github.com/kerraform/kerranamodb/internal/handler"
 	"github.com/kerraform/kerranamodb/internal/middleware"
 	"go.uber.org/zap"
@@ -50,7 +50,7 @@ func (h *Handler) Handler() http.Handler {
 			return h.putLock(w, r)
 		default:
 			err := fmt.Errorf("method: %s not allowed", method)
-			return errors.Wrap(err, errors.WithBadRequest(err.Error()))
+			return kerrors.Wrap(err, kerrors.WithBadRequest(err.Error()))
 		}
 	})
 }
@@ -65,8 +65,18 @@ func (h *Handler) deleteLock(w http.ResponseWriter, r *http.Request) error {
 
 	lid, err := i.GetLockID()
 	if err != nil {
-		return errors.Wrap(err, errors.WithBadRequest("failed to get lock id"))
+		return kerrors.Wrap(err, kerrors.WithBadRequest("failed to get lock id"))
 	}
+
+	dlid := dlock.From(i.TableName, string(lid))
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+	lock, err := h.dmu.Lock(ctx, dlid)
+	if err != nil {
+		h.logger.Error("someone in the cluster has the lock or trying to get it", zap.Error(err))
+		return kerrors.Wrap(fmt.Errorf("state is locked"), kerrors.WithConditionalCheckFailedException())
+	}
+	defer lock.Unlock()
 
 	return h.driver.DeleteLock(r.Context(), i.TableName, lid)
 }
@@ -81,8 +91,18 @@ func (h *Handler) getLock(w http.ResponseWriter, r *http.Request) error {
 
 	lid, err := i.GetLockID()
 	if err != nil {
-		return errors.Wrap(err, errors.WithBadRequest("failed to get lock id"))
+		return kerrors.Wrap(err, kerrors.WithBadRequest("failed to get lock id"))
 	}
+
+	dlid := dlock.From(i.TableName, string(lid))
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+	lock, err := h.dmu.RLock(ctx, dlid)
+	if err != nil {
+		h.logger.Error("someone in the cluster has the lock or trying to get it", zap.Error(err))
+		return kerrors.Wrap(fmt.Errorf("state is locked"), kerrors.WithConditionalCheckFailedException())
+	}
+	defer lock.RUnlock()
 
 	info, err := h.driver.GetLock(r.Context(), i.TableName, lid)
 	if err != nil {
@@ -114,16 +134,26 @@ func (h *Handler) putLock(w http.ResponseWriter, r *http.Request) error {
 
 	info, err := i.GetInfo()
 	if err != nil {
-		return errors.Wrap(err, errors.WithBadRequest("failed to get info"))
+		return kerrors.Wrap(err, kerrors.WithBadRequest("failed to get info"))
 	}
 
 	if info == "" {
-		return errors.Wrap(err, errors.WithBadRequest("empty info"))
+		return kerrors.Wrap(err, kerrors.WithBadRequest("empty info"))
 	}
 
 	lid, err := i.GetLockID()
 	if err != nil {
-		return errors.Wrap(err, errors.WithBadRequest("failed to get lock id"))
+		return kerrors.Wrap(err, kerrors.WithBadRequest("failed to get lock id"))
+	}
+
+	dlid := dlock.From(i.TableName, string(lid))
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	rl, err := h.dmu.RLock(ctx, dlid)
+	if err != nil {
+		h.logger.Error("someone in the cluster has the lock or trying to get it", zap.Error(err))
+		return kerrors.Wrap(fmt.Errorf("state is locked"), kerrors.WithConditionalCheckFailedException())
 	}
 
 	hasLock, err := h.driver.HasLock(r.Context(), i.TableName, lid)
@@ -131,18 +161,18 @@ func (h *Handler) putLock(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	if hasLock {
-		return errors.Wrap(fmt.Errorf("state is locked"), errors.WithConditionalCheckFailedException())
+		return kerrors.Wrap(fmt.Errorf("state is locked"), kerrors.WithConditionalCheckFailedException())
 	}
+	rl.RUnlock()
 
-	dlid := dlock.From(i.TableName, string(lid))
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel = context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
-	lock, err := h.dmu.Lock(ctx, dlid)
+	l, err := h.dmu.Lock(ctx, dlid)
 	if err != nil {
 		h.logger.Error("someone in the cluster has the lock or trying to get it", zap.Error(err))
-		return errors.Wrap(fmt.Errorf("state is locked"), errors.WithConditionalCheckFailedException())
+		return kerrors.Wrap(fmt.Errorf("state is locked"), kerrors.WithConditionalCheckFailedException())
 	}
-	defer lock.Unlock()
+	defer l.Unlock()
 
 	if err := h.driver.SaveLock(r.Context(), i.TableName, lid, driver.Info(info)); err != nil {
 		return err
