@@ -9,12 +9,14 @@ import (
 	"syscall"
 
 	"github.com/kerraform/kerranamodb/internal/config"
+	"github.com/kerraform/kerranamodb/internal/dlock"
 	"github.com/kerraform/kerranamodb/internal/driver"
 	"github.com/kerraform/kerranamodb/internal/driver/local"
 	"github.com/kerraform/kerranamodb/internal/driver/s3"
+	"github.com/kerraform/kerranamodb/internal/http"
+	server "github.com/kerraform/kerranamodb/internal/http"
 	"github.com/kerraform/kerranamodb/internal/logging"
 	"github.com/kerraform/kerranamodb/internal/metric"
-	"github.com/kerraform/kerranamodb/internal/server"
 	"github.com/kerraform/kerranamodb/internal/trace"
 	v1 "github.com/kerraform/kerranamodb/internal/v1"
 	"github.com/kerraform/kerranamodb/internal/version"
@@ -97,6 +99,21 @@ func run(args []string) error {
 	}
 	t := tp.Tracer(cfg.Trace.Name)
 
+	lopts := []dlock.LockOptions{dlock.WithLogger(logger.Named("dmutex"))}
+	if len(cfg.Lock.Nodes) > 0 {
+		lopts = append(lopts, dlock.WithStaticEndpoints(cfg.Lock.GetNodes()))
+	}
+
+	if v := cfg.Lock.ServiceDiscoveryEndpoint; v != "" {
+		lopts = append(lopts, dlock.WithServiceDiscovery(v))
+	}
+
+	logger.Info("setup dlock")
+	dmu, err := dlock.NewDMutex(ctx, lopts...)
+	if err != nil {
+		return err
+	}
+
 	logger.Info("setup backend", zap.String("backend", cfg.Backend.Type), zap.String("rootPath", cfg.Backend.RootPath))
 	var d driver.Driver
 	switch driver.DriverType(cfg.Backend.Type) {
@@ -126,28 +143,42 @@ func run(args []string) error {
 	metrics := metric.New(logger, d)
 
 	wg, ctx := errgroup.WithContext(ctx)
-
 	v1 := v1.New(&v1.HandlerConfig{
+		Dmu:    dmu,
 		Driver: d,
 		Logger: logger,
 	})
 
-	svr := server.NewServer(&server.ServerConfig{
-		Driver:         d,
-		Logger:         logger,
-		Metric:         metrics,
-		Tracer:         t,
-		V1:             v1,
+	httpSvr := http.NewServer(&server.ServerConfig{
+		Dmu:    dmu,
+		Driver: d,
+		Logger: logger,
+		Metric: metrics,
+		Tracer: t,
+		V1:     v1,
 	})
 
-	conn, err := net.Listen("tcp", cfg.Address())
+	httpConn, err := net.Listen("tcp", cfg.HTTPAddress())
 	if err != nil {
 		return err
 	}
 
-	logger.Info("server started", zap.Int("port", cfg.Port))
+	logger.Info("http server started", zap.Int("port", cfg.HTTPPort))
 	wg.Go(func() error {
-		return svr.Serve(ctx, conn)
+		return httpSvr.Serve(ctx, httpConn)
+	})
+
+	grpcSvc := dlock.NewLockService(&dlock.LockServiceOptions{
+		Port:   cfg.GRPCPort,
+		Logger: logger,
+	})
+	logger.Info("grpc server started", zap.Int("port", cfg.GRPCPort))
+	wg.Go(func() error {
+		return grpcSvc.Serve()
+	})
+
+	wg.Go(func() error {
+		return dmu.Connect(ctx)
 	})
 
 	sigCh := make(chan os.Signal, 1)
@@ -156,12 +187,12 @@ func run(args []string) error {
 	case v := <-sigCh:
 		logger.Info("received signal %d", zap.String("signal", v.String()))
 	case <-ctx.Done():
-
+		return ctx.Err()
 	}
 
 	// Context for shutdown
 	newCtx := context.Background()
-	if err := svr.Shutdown(newCtx); err != nil {
+	if err := httpSvr.Shutdown(newCtx); err != nil {
 		logger.Error("failed to graceful shutdown server", zap.Error(err))
 		return err
 	}
