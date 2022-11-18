@@ -21,12 +21,36 @@ type DMutex struct {
 	DSync *dsync.Dsync
 	Ready bool
 
-	mu        sync.RWMutex
-	isWriting map[DLockID]bool
-	isReading map[DLockID]bool
-
+	mu        *sync.RWMutex
+	mus       map[DLockID]*dmutex
 	endpoints []string
 	logger    *zap.Logger
+}
+
+type dmutex struct {
+	mu        *sync.RWMutex
+	isReading bool
+	isWriting bool
+}
+
+func (d *dmutex) Lock() {
+	d.mu.Lock()
+	d.isWriting = true
+}
+
+func (d *dmutex) UnLock() {
+	d.isWriting = true
+	d.mu.Unlock()
+}
+
+func (d *dmutex) Rlock() {
+	d.mu.RLock()
+	d.isReading = true
+}
+
+func (d *dmutex) RUnlock() {
+	d.isReading = false
+	d.mu.RUnlock()
 }
 
 type LockOptions func(*options)
@@ -75,6 +99,8 @@ func NewDMutex(ctx context.Context, opts ...LockOptions) (*DMutex, error) {
 	return &DMutex{
 		endpoints: eps,
 		logger:    o.logger,
+		mu:        &sync.RWMutex{},
+		mus:       map[DLockID]*dmutex{},
 	}, nil
 }
 
@@ -113,35 +139,69 @@ func (dmu *DMutex) Connect(ctx context.Context) error {
 }
 
 func (dmu *DMutex) SetReading(lid DLockID, v bool) {
-	dmu.mu.RLock()
-	defer dmu.mu.RUnlock()
-	dmu.isReading[lid] = v
+	dmu.mu.Lock()
+	mu, ok := dmu.mus[lid]
+	if ok {
+		if v {
+			mu.Rlock()
+			return
+		}
+
+		mu.RUnlock()
+		return
+	}
+
+	dmu.mus[lid] = &dmutex{
+		mu:        &sync.RWMutex{},
+		isReading: true,
+	}
+
+	dmu.mu.Unlock()
 }
 
 func (dmu *DMutex) IsReading(lid DLockID) bool {
 	dmu.mu.RLock()
-	defer dmu.mu.RUnlock()
-	if v, ok := dmu.isReading[lid]; ok {
-		return v
+	mu, ok := dmu.mus[lid]
+	if !ok {
+		return false
 	}
 
-	return false
+	mu.mu.RLock()
+	defer mu.mu.RUnlock()
+	return mu.isReading
 }
 
 func (dmu *DMutex) SetWriting(lid DLockID, v bool) {
 	dmu.mu.Lock()
-	defer dmu.mu.Unlock()
-	dmu.isWriting[lid] = v
+	mu, ok := dmu.mus[lid]
+	if ok {
+		if v {
+			mu.Lock()
+			return
+		}
+
+		mu.UnLock()
+		return
+	}
+
+	dmu.mus[lid] = &dmutex{
+		mu:        &sync.RWMutex{},
+		isWriting: true,
+	}
+
+	dmu.mu.Unlock()
 }
 
 func (dmu *DMutex) IsWriting(lid DLockID) bool {
 	dmu.mu.RLock()
-	defer dmu.mu.RUnlock()
-	if v, ok := dmu.isReading[lid]; ok {
-		return v
+	mu, ok := dmu.mus[lid]
+	if !ok {
+		return false
 	}
 
-	return false
+	mu.mu.RLock()
+	defer mu.mu.RUnlock()
+	return mu.isWriting
 }
 
 func (dmu *DMutex) connect(ctx context.Context, cfg *DLockerConfig) (dsync.NetLocker, error) {
