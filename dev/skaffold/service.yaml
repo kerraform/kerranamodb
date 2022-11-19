@@ -7,6 +7,7 @@ spec:
   selector:
     app: karranamodb
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 15000
       targetPort: 15000
