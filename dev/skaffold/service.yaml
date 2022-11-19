@@ -7,11 +7,6 @@ spec:
   selector:
     app: karranamodb
   ports:
-    - name: http
-      protocol: TCP
-      port: 80
-      targetPort: 8080
-    - name: grpc
-      protocol: TCP
+    - protocol: TCP
       port: 15000
       targetPort: 15000
