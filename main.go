@@ -21,6 +21,8 @@ import (
 	"github.com/kerraform/kerranamodb/internal/trace"
 	v1 "github.com/kerraform/kerranamodb/internal/v1"
 	"github.com/kerraform/kerranamodb/internal/version"
+	"github.com/kerraform/kerranamodb/internal/worker"
+	"github.com/kerraform/kerranamodb/internal/worker/ip"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/sdk/resource"
 	otracesdk "go.opentelemetry.io/otel/sdk/trace"
@@ -194,6 +196,17 @@ func run(args []string) error {
 	wg.Go(func() error {
 		return dmu.Connect(ctx)
 	})
+
+	if cfg.Lock.ServiceDiscoveryEndpoint != "" {
+		w := ip.NewSyncer(dmu,
+			ip.WithLogger(logger),
+		)
+		m := worker.NewManager(w)
+		logger.Info("worker started", zap.Any("workers", m.Names()))
+		wg.Go(func() error {
+			return m.Run(ctx)
+		})
+	}
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, os.Interrupt)

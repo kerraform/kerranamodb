@@ -30,7 +30,9 @@ type DMutex struct {
 
 	endpoints []string
 	expected  int
+	port      int
 	logger    *zap.Logger
+	sd        string
 	hostIP    string
 }
 
@@ -111,8 +113,11 @@ func NewDMutex(ctx context.Context, opts ...LockOptions) (*DMutex, error) {
 	dmu := &DMutex{
 		expected: o.expected,
 		logger:   o.logger,
+		hostIP:   o.hostIP,
 		mu:       &sync.RWMutex{},
 		mus:      map[DLockID]*dmutex{},
+		port:     o.port,
+		sd:       o.sd,
 	}
 
 	var eps []string
@@ -363,4 +368,59 @@ LOOP:
 	}
 
 	return res, nil
+}
+
+func (dmu *DMutex) SyncNodes(ctx context.Context) error {
+	ips, err := net.LookupIP(dmu.sd)
+	if err != nil {
+		return err
+	}
+
+	dmu.logger.Debug("service discovery ips", zap.Int("count", len(ips)), zap.Int("expected", dmu.expected))
+	var eps []string
+	if len(ips) == dmu.expected {
+		for _, ip := range ips {
+			if ipv4 := ip.To4(); ipv4 != nil {
+				dmu.logger.Debug("fetched ip", zap.String("ip", ipv4.String()))
+				if ipv4.String() != dmu.hostIP {
+					eps = append(eps, fmt.Sprintf("http://%s:%d", ip.String(), dmu.port))
+				}
+			}
+		}
+	}
+
+	lks := []dsync.NetLocker{}
+	var wg sync.WaitGroup
+	for _, e := range eps {
+		wg.Add(1)
+		e := e
+		go func() {
+			l, err := dmu.connect(ctx, &DLockerConfig{
+				endpoint: e,
+				logger:   dmu.logger.Named("dlocker").With(zap.String("endpoint", e)),
+			})
+			if err != nil {
+				dmu.logger.Warn("failed to connect to lock node", zap.Error(err))
+				return
+			}
+
+			lks = append(lks, l)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	ds, err := dsync.New(lks)
+	if err != nil {
+		dmu.logger.Debug("failed to connect", zap.Error(err))
+		return err
+	}
+
+	dmu.mu.Lock()
+	defer dmu.mu.Unlock()
+
+	dmu.logger.Info("updated lock nodes", zap.Int("nodes", len(eps)))
+	dmu.endpoints = eps
+	dmu.DSync = ds
+	return nil
 }
