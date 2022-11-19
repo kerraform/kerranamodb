@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: karranamodb
+spec:
+  clusterIP: None # Headless service
+  selector:
+    app: karranamodb
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+    - name: grpc
+      protocol: TCP
+      port: 15000
+      targetPort: 15000

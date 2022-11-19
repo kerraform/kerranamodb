@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: karranamodb
+  labels:
+    app: karranamodb
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: karranamodb
+  template:
+    metadata:
+      labels:
+        app: karranamodb
+    spec:
+      containers:
+        - name: karranamodb
+          image: karranamodb:latest
+          ports:
+            - name: grpc
+              containerPort: 15000
+            - name: http
+              containerPort: 8080
+          env:
+            - name: BACKEND_TYPE
+              value: local
+            - name: DSYNC_LOG
+              value: "1"
+            - name: LOG_LEVEL
+              value: debug
+            - name: HTTP_PORT
+              value: "8080"
+            - name: GRPC_PORT
+              value: "15000"
+            - name: LOCK_HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: LOCK_SERVICE_DISCOVERY_ENDPOINT
+              value: karranamodb.kerranamodb.svc.cluster.local
+            - name: LOCK_SERVICE_DISCOVERY_NODE_COUNT
+              value: "4"
+            - name: LOCK_SERVICE_DISCOVERY_TIMEOUT
+              value: "180"
+            - name: LOCK_SERVICE_DISCOVERY_PORT
+              value: "15000"

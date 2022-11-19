@@ -14,9 +14,9 @@ func (s *Server) registerRegistryHandler() {
 	s.mux.Use(middleware.JSON())
 	s.mux.Use(middleware.AccessLog(s.logger))
 	s.mux.Use(middleware.AccessMetric(s.metric))
-	s.mux.Use(middleware.DynamoDB())
 
 	v1 := s.mux.PathPrefix(v1Path).Subrouter()
+	v1.Use(middleware.DynamoDB())
 
 	// Note(KeisukeYamashita):
 	// Paths can be configured by `dynamodb_endpoint` field.

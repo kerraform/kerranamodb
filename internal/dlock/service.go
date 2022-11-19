@@ -20,15 +20,19 @@ type Server struct {
 }
 
 type LockService struct {
+	mu *DMutex
 }
 
 type LockServiceOptions struct {
+	Dmu    *DMutex
 	Port   int
 	Logger *zap.Logger
 }
 
 func NewLockService(opts *LockServiceOptions) *Server {
-	svc := &LockService{}
+	svc := &LockService{
+		mu: opts.Dmu,
+	}
 
 	interceptors := connect.WithInterceptors(
 		interceptor.NewLoggingInterceptor(opts.Logger.Named("dlock")),
@@ -51,8 +55,10 @@ func (s *Server) Serve() error {
 }
 
 func (s *LockService) Lock(ctx context.Context, req *connect.Request[lockv1.LockRequest]) (*connect.Response[lockv1.LockResponse], error) {
+	p := req.Any().(*lockv1.LockRequest)
+	dlid := From(p.GetTable(), p.GetKey())
 	return connect.NewResponse(&lockv1.LockResponse{
-		Available: true,
+		Available: !s.mu.IsWritable(dlid),
 	}), nil
 }
 
@@ -63,8 +69,10 @@ func (s *LockService) Unlock(ctx context.Context, req *connect.Request[lockv1.Un
 }
 
 func (s *LockService) RLock(ctx context.Context, req *connect.Request[lockv1.RLockRequest]) (*connect.Response[lockv1.RLockResponse], error) {
+	p := req.Any().(*lockv1.RLockRequest)
+	dlid := From(p.GetTable(), p.GetKey())
 	return connect.NewResponse(&lockv1.RLockResponse{
-		Available: true,
+		Available: !s.mu.IsReadable(dlid),
 	}), nil
 }
 

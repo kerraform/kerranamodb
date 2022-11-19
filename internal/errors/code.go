@@ -42,3 +42,12 @@ func WithNotFound() WrapOption {
 		e.StatusCode = http.StatusNotFound
 	}
 }
+
+
+func WithInternalServerError() WrapOption {
+	return func(e *Error) {
+		e.Type = "NOTFOUND"
+		e.Message = "internal server error"
+		e.StatusCode = http.StatusInternalServerError
+	}
+}

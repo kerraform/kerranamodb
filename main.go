@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/kerraform/kerranamodb/internal/config"
 	"github.com/kerraform/kerranamodb/internal/dlock"
@@ -105,12 +106,24 @@ func run(args []string) error {
 	}
 
 	if v := cfg.Lock.ServiceDiscoveryEndpoint; v != "" {
-		lopts = append(lopts, dlock.WithServiceDiscovery(v))
+		lopts = append(lopts, dlock.WithServiceDiscovery(v, cfg.Lock.ServiceDiscoveryNodeCount, cfg.Lock.HostIP, cfg.Lock.ServiceDiscoveryPort))
 	}
 
-	logger.Info("setup dlock")
+	if v := cfg.Lock.ServiceDiscoveryTimeout; v != 0 {
+		lopts = append(lopts, dlock.WithTimeout(time.Duration(v)*time.Second))
+	}
+
+	logger.Info("setup dlock",
+		zap.Any("nodes", cfg.Lock.Nodes),
+		zap.String("hostIP", cfg.Lock.HostIP),
+		zap.Int("serviceDiscoveryPort", cfg.Lock.ServiceDiscoveryPort),
+		zap.Int("serviceDiscoveryTimeout", cfg.Lock.ServiceDiscoveryTimeout),
+		zap.String("serviceDiscoveryEndpoint", cfg.Lock.ServiceDiscoveryEndpoint),
+		zap.Int("serviceDiscoveryNodeCound", cfg.Lock.ServiceDiscoveryNodeCount),
+	)
 	dmu, err := dlock.NewDMutex(ctx, lopts...)
 	if err != nil {
+		logger.Error("failed to create new lock", zap.Error(err))
 		return err
 	}
 
@@ -171,6 +184,7 @@ func run(args []string) error {
 	grpcSvc := dlock.NewLockService(&dlock.LockServiceOptions{
 		Port:   cfg.GRPCPort,
 		Logger: logger,
+		Dmu:    dmu,
 	})
 	logger.Info("grpc server started", zap.Int("port", cfg.GRPCPort))
 	wg.Go(func() error {
