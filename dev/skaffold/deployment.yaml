@@ -38,9 +38,9 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
             - name: LOCK_SERVICE_DISCOVERY_ENDPOINT
-              value: nginx.nginx.svc.cluster.local
+              value: karranamodb.kerranamodb.svc.cluster.local
             - name: LOCK_SERVICE_DISCOVERY_NODE_COUNT
-              value: "5"
+              value: "4"
             - name: LOCK_SERVICE_DISCOVERY_TIMEOUT
               value: "180"
             - name: LOCK_SERVICE_DISCOVERY_PORT

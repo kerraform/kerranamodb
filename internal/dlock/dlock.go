@@ -135,7 +135,7 @@ func NewDMutex(ctx context.Context, opts ...LockOptions) (*DMutex, error) {
 }
 
 func (dmu *DMutex) Connect(ctx context.Context) error {
-	var lks []dsync.NetLocker
+	lks := []dsync.NetLocker{}
 
 	var wg sync.WaitGroup
 	for _, e := range dmu.endpoints {
