@@ -145,7 +145,6 @@ func (h *Handler) putLock(w http.ResponseWriter, r *http.Request) error {
 		h.logger.Error("someone in the cluster has the lock or trying to get it", zap.Error(err))
 		return kerrors.Wrap(fmt.Errorf("state is locked"), kerrors.WithConditionalCheckFailedException())
 	}
-	h.logger.Info("acquired lock")
 
 	hasLock, err := h.driver.HasLock(r.Context(), i.TableName, lid)
 	if err != nil {
