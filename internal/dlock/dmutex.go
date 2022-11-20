@@ -16,25 +16,25 @@ type dmutex struct {
 }
 
 func (d *dmutex) Lock() {
-	d.logger.Debug("lock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
 	d.mu.Lock()
 	d.isWriting = true
+	d.logger.Debug("lock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
 }
 
 func (d *dmutex) Unlock() {
-	d.logger.Debug("unlock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
 	d.isWriting = false
 	d.mu.Unlock()
+	d.logger.Debug("unlock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
 }
 
 func (d *dmutex) Rlock() {
-	d.logger.Debug("rlock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
 	d.mu.RLock()
 	d.isReading = true
+	d.logger.Debug("rlock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
 }
 
 func (d *dmutex) RUnlock() {
-	d.logger.Debug("runlock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
 	d.isReading = false
 	d.mu.RUnlock()
+	d.logger.Debug("runlock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
 }
