@@ -183,33 +183,26 @@ func (dmu *DMutex) SetUnReading(lid DLockID) {
 	dmu.setReading(lid, false)
 }
 
-func (dmu *DMutex) setReading(lid DLockID, v bool) {
+func (dmu *DMutex) setReading(lid DLockID, lock bool) {
 	dmu.mu.Lock()
 	defer dmu.mu.Unlock()
 	mu, ok := dmu.mus[lid]
-	if ok {
-		if v {
-			mu.Rlock()
-			return
+	if !ok {
+		mu = &dmutex{
+			logger:    dmu.logger.Named("dmutex").With(zap.String("dlid", string(lid))),
+			mu:        &sync.RWMutex{},
+			isReading: lock,
 		}
 
-		mu.RUnlock()
-		return
 	}
 
-	m := &dmutex{
-		logger:    dmu.logger.Named("dmutex").With(zap.String("dlid", string(lid))),
-		mu:        &sync.RWMutex{},
-		isReading: v,
-	}
-
-	if v {
-		m.Rlock()
+	if lock {
+		mu.Rlock()
 	} else {
-		m.RUnlock()
+		mu.RUnlock()
 	}
 
-	dmu.mus[lid] = m
+	dmu.mus[lid] = mu
 	dmu.logger.Debug("initial set reading", zap.String("dlid", string(lid)))
 }
 
@@ -234,35 +227,27 @@ func (dmu *DMutex) SetUnWriting(lid DLockID) {
 	dmu.setWriting(lid, false)
 }
 
-func (dmu *DMutex) setWriting(lid DLockID, v bool) {
+func (dmu *DMutex) setWriting(lid DLockID, lock bool) {
 	dmu.mu.Lock()
 	defer dmu.mu.Unlock()
 	mu, ok := dmu.mus[lid]
-	if ok {
-		if v {
-			mu.Lock()
-			return
+	if !ok {
+		mu = &dmutex{
+			logger:    dmu.logger.Named("dmutex").With(zap.String("dlid", string(lid))),
+			mu:        &sync.RWMutex{},
+			isWriting: lock,
+			isReading: lock,
 		}
-
-		mu.UnLock()
-		return
 	}
 
-	m := &dmutex{
-		logger:    dmu.logger.Named("dmutex").With(zap.String("dlid", string(lid))),
-		mu:        &sync.RWMutex{},
-		isWriting: v,
-		isReading: v,
-	}
-
-	if v {
-		m.Rlock()
+	if lock {
+		mu.Lock()
 	} else {
-		m.RUnlock()
+		mu.UnLock()
 	}
 
-	dmu.mus[lid] = m
-	dmu.logger.Debug("initial write reading", zap.String("dlid", string(lid)))
+	dmu.mus[lid] = mu
+	dmu.logger.Debug("initial set write", zap.String("dlid", string(lid)))
 }
 
 func (dmu *DMutex) IsWritable(lid DLockID) bool {
