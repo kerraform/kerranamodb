@@ -58,7 +58,7 @@ func (s *LockService) Lock(ctx context.Context, req *connect.Request[lockv1.Lock
 	p := req.Any().(*lockv1.LockRequest)
 	dlid := From(p.GetTable(), p.GetKey())
 	return connect.NewResponse(&lockv1.LockResponse{
-		Available: !s.mu.IsWritable(dlid),
+		Available: s.mu.IsWritable(dlid),
 	}), nil
 }
 
@@ -72,7 +72,7 @@ func (s *LockService) RLock(ctx context.Context, req *connect.Request[lockv1.RLo
 	p := req.Any().(*lockv1.RLockRequest)
 	dlid := From(p.GetTable(), p.GetKey())
 	return connect.NewResponse(&lockv1.RLockResponse{
-		Available: !s.mu.IsReadable(dlid),
+		Available: s.mu.IsReadable(dlid),
 	}), nil
 }
 

@@ -218,12 +218,12 @@ func (dmu *DMutex) IsReadable(lid DLockID) bool {
 	defer dmu.mu.RUnlock()
 	mu, ok := dmu.mus[lid]
 	if !ok {
-		return false
+		return true
 	}
 
 	mu.mu.RLock()
 	defer mu.mu.RUnlock()
-	return mu.isReading || mu.isWriting
+	return !(mu.isReading || mu.isWriting)
 }
 
 func (dmu *DMutex) SetWriting(lid DLockID) {
@@ -270,12 +270,12 @@ func (dmu *DMutex) IsWritable(lid DLockID) bool {
 	defer dmu.mu.RUnlock()
 	mu, ok := dmu.mus[lid]
 	if !ok {
-		return false
+		return true
 	}
 
 	mu.mu.RLock()
 	defer mu.mu.RUnlock()
-	return mu.isWriting
+	return !mu.isWriting
 }
 
 func (dmu *DMutex) connect(ctx context.Context, cfg *DLockerConfig) (dsync.NetLocker, error) {
