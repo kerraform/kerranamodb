@@ -27,8 +27,9 @@ type Server struct {
 	logger         *zap.Logger
 	metric         *metric.RegistryMetrics
 	mux            *mux.Router
-	tracer         trace.Tracer
 	server         *http.Server
+	tracer         trace.Tracer
+	url            string
 
 	v1 *v1.Handler
 }
@@ -42,6 +43,7 @@ type ServerConfig struct {
 	Logger         *zap.Logger
 	Metric         *metric.RegistryMetrics
 	Tracer         trace.Tracer
+	URL            string
 	V1             *v1.Handler
 }
 

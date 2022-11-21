@@ -16,7 +16,7 @@ var (
 )
 
 func (s *Server) registerRegistryHandler() {
-	s.mux.Use(middleware.CORs())
+	s.mux.Use(middleware.CORs(s.url))
 	s.mux.Use(middleware.JSON())
 	s.mux.Use(middleware.AccessLog(s.logger))
 	s.mux.Use(middleware.AccessMetric(s.metric))
