@@ -5,6 +5,7 @@ import (
 
 	"github.com/kerraform/kerranamodb/internal/driver"
 	"github.com/kerraform/kerranamodb/internal/id"
+	modelv1 "github.com/kerraform/kerranamodb/internal/model/v1"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -45,10 +46,10 @@ func (d *d) SaveLock(ctx context.Context, table string, lid id.LockID, info driv
 	return nil
 }
 
-func (d *d) CreateTenant(ctx context.Context, table string) error {
+func (d *d) CreateTenant(ctx context.Context, table string, token string) error {
 	return nil
 }
 
-func (d *d) GetTenant(ctx context.Context, table string) error {
-	return nil
+func (d *d) GetTenant(ctx context.Context, table string) (*modelv1.Tenant, error) {
+	return nil, nil
 }

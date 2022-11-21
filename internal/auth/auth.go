@@ -15,7 +15,7 @@ const (
 )
 
 type Authenticator interface {
-	Generate(context.Context, string)
+	Generate(context.Context, *Claims) (string, error)
 	Verify(context.Context, string)
 }
 
@@ -53,8 +53,14 @@ func NewAuth(keypath string, d driver.Driver, logger *zap.Logger) (Authenticator
 	}, nil
 }
 
-func (a *auth) Generate(ctx context.Context, table string) {
+func (a *auth) Generate(ctx context.Context, claim *Claims) (string, error) {
+	t := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claim)
+	st, err := t.SignedString(a.privateKey)
+	if err != nil {
+		return "", err
+	}
 
+	return st, err
 }
 
 func (a *auth) Verify(ctx context.Context, token string) {}

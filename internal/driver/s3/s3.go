@@ -11,9 +11,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
 	"github.com/kerraform/kerranamodb/internal/driver"
 	"github.com/kerraform/kerranamodb/internal/id"
+	modelv1 "github.com/kerraform/kerranamodb/internal/model/v1"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -136,10 +138,39 @@ func (d *d) SaveLock(ctx context.Context, table string, lid id.LockID, info driv
 	return nil
 }
 
-func (d *d) CreateTenant(ctx context.Context, table string) error {
+func (d *d) CreateTenant(ctx context.Context, table string, token string) error {
+	uploader := manager.NewUploader(d.s3)
+
+	b := bytes.NewBuffer([]byte(token))
+	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(d.bucket),
+		Key:    aws.String(fmt.Sprintf("%s/%s", table, driver.TokenFile)),
+		Body:   b,
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (d *d) GetTenant(ctx context.Context, table string) error {
-	return nil
+func (d *d) GetTenant(ctx context.Context, table string) (*modelv1.Tenant, error) {
+	b := manager.NewWriteAtBuffer([]byte{})
+	downloader := manager.NewDownloader(d.s3)
+	_, err := downloader.Download(ctx, b, &s3.GetObjectInput{
+		Bucket: aws.String(d.bucket),
+		Key:    aws.String(fmt.Sprintf("%s/%s", table, driver.TokenFile)),
+	})
+
+	if err != nil {
+		var bne *types.NoSuchKey
+		if errors.As(err, &bne) {
+			return nil, driver.ErrTenantNotFound
+		}
+		return nil, err
+	}
+
+	return &modelv1.Tenant{
+		Table: table,
+	}, nil
 }

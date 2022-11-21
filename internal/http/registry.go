@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/kerraform/kerranamodb/internal/middleware"
@@ -8,6 +9,10 @@ import (
 
 const (
 	v1Path = "/v1"
+)
+
+var (
+	v1TenantPath = fmt.Sprintf("%s/tenant", v1Path)
 )
 
 func (s *Server) registerRegistryHandler() {
@@ -18,11 +23,12 @@ func (s *Server) registerRegistryHandler() {
 	v1 := s.mux.PathPrefix(v1Path).Subrouter()
 	v1.Use(middleware.DynamoDB())
 
-	// ProvisionTenants
-	v1.Methods(http.MethodPost).Path("/tenant").Handler(s.v1.CreateTenant())
+	tenant := s.mux.PathPrefix(v1TenantPath).Subrouter()
 
+	// ProvisionTenants
+	tenant.Methods(http.MethodPost).Path("").Handler(s.v1.CreateTenant())
 	if v := s.auth; v != nil {
-		v1.Use(middleware.Auth(v))
+		tenant.Use(middleware.Auth(v))
 	}
 
 	// Note(KeisukeYamashita):

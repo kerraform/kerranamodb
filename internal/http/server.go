@@ -47,6 +47,7 @@ type ServerConfig struct {
 
 func NewServer(cfg *ServerConfig) *Server {
 	s := &Server{
+		auth:           cfg.Auth,
 		driver:         cfg.Driver,
 		dmu:            cfg.Dmu,
 		enableModule:   cfg.EnableModule,

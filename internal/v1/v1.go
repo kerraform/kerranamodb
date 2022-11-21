@@ -3,10 +3,12 @@ package v1
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/kerraform/kerranamodb/internal/auth"
 	"github.com/kerraform/kerranamodb/internal/dlock"
 	"github.com/kerraform/kerranamodb/internal/driver"
 	"github.com/kerraform/kerranamodb/internal/dynamodb"
@@ -18,12 +20,14 @@ import (
 )
 
 type Handler struct {
+	auth   auth.Authenticator
 	dmu    *dlock.DMutex
 	logger *zap.Logger
 	driver driver.Driver
 }
 
 type HandlerConfig struct {
+	Auth   auth.Authenticator
 	Dmu    *dlock.DMutex
 	Driver driver.Driver
 	Logger *zap.Logger
@@ -31,15 +35,49 @@ type HandlerConfig struct {
 
 func New(cfg *HandlerConfig) *Handler {
 	return &Handler{
+		auth:   cfg.Auth,
 		dmu:    cfg.Dmu,
 		driver: cfg.Driver,
 		logger: cfg.Logger.Named("v1"),
 	}
 }
 
+type CreateTenantRequest struct {
+	Table string `json:"table"`
+}
+
+type CreateTenantResponse struct {
+	URL string `json:"url"`
+}
+
 func (h *Handler) CreateTenant() http.Handler {
 	return handler.NewHandler(func(w http.ResponseWriter, r *http.Request) error {
-		return nil
+		var req CreateTenantRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			return err
+		}
+
+		tenant, err := h.driver.GetTenant(r.Context(), req.Table)
+		if err != nil {
+			if !errors.Is(err, driver.ErrTenantNotFound) {
+				return err
+			}
+		}
+
+		if tenant != nil {
+			return kerrors.Wrap(err, kerrors.WithBadRequest(fmt.Sprintf("%s table already exists", req.Table)))
+		}
+
+		st, err := h.auth.Generate(r.Context(), &auth.Claims{})
+		if err != nil {
+			return err
+		}
+
+		if err := h.driver.CreateTenant(r.Context(), req.Table, st); err != nil {
+			return err
+		}
+
+		return json.NewEncoder(w).Encode(&CreateTenantResponse{})
 	})
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/kerraform/kerranamodb/internal/id"
+	modelv1 "github.com/kerraform/kerranamodb/internal/model/v1"
 )
 
 type DriverType string
@@ -11,6 +12,10 @@ type DriverType string
 const (
 	DriverTypeLocal DriverType = "local"
 	DriverTypeS3    DriverType = "s3"
+)
+
+const (
+	TokenFile = "token"
 )
 
 type Driver interface {
@@ -21,8 +26,8 @@ type Driver interface {
 	SaveLock(context.Context, string, id.LockID, Info) error
 
 	// Tenant
-	CreateTenant(context.Context, string) error
-	GetTenant(context.Context, string) error
+	CreateTenant(context.Context, string, string) error
+	GetTenant(context.Context, string) (*modelv1.Tenant, error)
 }
 
 type Info string

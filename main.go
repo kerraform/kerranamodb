@@ -156,15 +156,6 @@ func run(args []string) error {
 		return fmt.Errorf("backend type %s not supported", cfg.Backend.Type)
 	}
 
-	metrics := metric.New(logger, d)
-
-	wg, ctx := errgroup.WithContext(ctx)
-	v1 := v1.New(&v1.HandlerConfig{
-		Dmu:    dmu,
-		Driver: d,
-		Logger: logger,
-	})
-
 	var a auth.Authenticator
 	if cfg.Auth.Enable {
 		logger.Info("setup authenticator", zap.String("privateKey", cfg.Auth.PrivateKeyPath))
@@ -173,6 +164,16 @@ func run(args []string) error {
 			return err
 		}
 	}
+
+	metrics := metric.New(logger, d)
+
+	wg, ctx := errgroup.WithContext(ctx)
+	v1 := v1.New(&v1.HandlerConfig{
+		Auth:   a,
+		Dmu:    dmu,
+		Driver: d,
+		Logger: logger,
+	})
 
 	httpSvr := http.NewServer(&server.ServerConfig{
 		Auth:   a,
