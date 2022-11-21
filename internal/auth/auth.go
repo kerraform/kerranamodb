@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"crypto"
-	"crypto/ed25519"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -77,7 +76,7 @@ func (a *auth) Verify(ctx context.Context, st string) (*Claims, error) {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return a.publicKey.(ed25519.PublicKey), nil
+		return a.publicKey, nil
 	})
 	if err != nil {
 		return nil, err
