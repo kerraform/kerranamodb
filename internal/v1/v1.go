@@ -37,6 +37,12 @@ func New(cfg *HandlerConfig) *Handler {
 	}
 }
 
+func (h *Handler) CreateTenant() http.Handler {
+	return handler.NewHandler(func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	})
+}
+
 func (h *Handler) Handler() http.Handler {
 	return handler.NewHandler(func(w http.ResponseWriter, r *http.Request) error {
 		method := dynamodb.OperationType(r.Context().Value(middleware.AmazonAPIOperationKey).(string))

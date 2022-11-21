@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kerraform/kerranamodb/internal/auth"
 	"github.com/kerraform/kerranamodb/internal/config"
 	"github.com/kerraform/kerranamodb/internal/dlock"
 	"github.com/kerraform/kerranamodb/internal/driver"
@@ -164,7 +165,17 @@ func run(args []string) error {
 		Logger: logger,
 	})
 
+	var a auth.Authenticator
+	if cfg.Auth.Enable {
+		logger.Info("setup authenticator", zap.String("privateKey", cfg.Auth.PrivateKeyPath))
+		a, err = auth.NewAuth(cfg.Auth.PrivateKeyPath, d, logger)
+		if err != nil {
+			return err
+		}
+	}
+
 	httpSvr := http.NewServer(&server.ServerConfig{
+		Auth:   a,
 		Dmu:    dmu,
 		Driver: d,
 		Logger: logger,

@@ -18,8 +18,15 @@ func (s *Server) registerRegistryHandler() {
 	v1 := s.mux.PathPrefix(v1Path).Subrouter()
 	v1.Use(middleware.DynamoDB())
 
+	// ProvisionTenants
+	v1.Methods(http.MethodPost).Path("/tenant").Handler(s.v1.CreateTenant())
+
+	if v := s.auth; v != nil {
+		v1.Use(middleware.Auth(v))
+	}
+
 	// Note(KeisukeYamashita):
-	// Paths can be configured by `dynamodb_endpoint` field.
+	// Paths can be configured by `dynamodb_endpoint` field on developer side.
 	// Thus, for future development, I will version-ize this API server.
 	v1.Methods(http.MethodPost).Path("/").Handler(s.v1.Handler())
 }

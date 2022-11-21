@@ -39,6 +39,7 @@ Theses are environment variable list that you can configure.
 
 | Variable  | Description | Type| Default |
 |:----|:----|:----|:---|
+| `AUTH_ENABLE`  | Enable authentication | `bool` | `true` |
 | `PORT`  | Port to listen | `int` | `5000` |
 | `NAME` | Used for trace name. | `string` | `kerranamodb` |
 | `BACKEND_TYPE` | Storage driver to use (supports `local` and `s3`) | `string` | (required) |

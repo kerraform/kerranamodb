@@ -44,3 +44,11 @@ func (d *d) GetLock(ctx context.Context, table string, lid id.LockID) (driver.In
 func (d *d) SaveLock(ctx context.Context, table string, lid id.LockID, info driver.Info) error {
 	return nil
 }
+
+func (d *d) CreateTenant(ctx context.Context, table string) error {
+	return nil
+}
+
+func (d *d) GetTenant(ctx context.Context, table string) error {
+	return nil
+}

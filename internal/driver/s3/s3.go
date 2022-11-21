@@ -135,3 +135,11 @@ func (d *d) SaveLock(ctx context.Context, table string, lid id.LockID, info driv
 
 	return nil
 }
+
+func (d *d) CreateTenant(ctx context.Context, table string) error {
+	return nil
+}
+
+func (d *d) GetTenant(ctx context.Context, table string) error {
+	return nil
+}

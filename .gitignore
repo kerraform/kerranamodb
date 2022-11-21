@@ -69,3 +69,6 @@ terraform/
 
 # goreleaser
 dist/
+
+# Private and public keys for local development
+dev/key
