@@ -186,6 +186,7 @@ func run(args []string) error {
 		Logger: logger,
 		Metric: metrics,
 		Tracer: t,
+		URL:    cfg.URL,
 		V1:     v1,
 	})
 

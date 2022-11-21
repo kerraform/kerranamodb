@@ -12,10 +12,11 @@ const (
 )
 
 var (
-	v1TenantPath = fmt.Sprintf("%s/tenant", v1Path)
+	v1TenantsPath = fmt.Sprintf("%s/tenants", v1Path)
 )
 
 func (s *Server) registerRegistryHandler() {
+	s.mux.Use(middleware.CORs(s.url))
 	s.mux.Use(middleware.JSON())
 	s.mux.Use(middleware.AccessLog(s.logger))
 	s.mux.Use(middleware.AccessMetric(s.metric))
@@ -26,10 +27,10 @@ func (s *Server) registerRegistryHandler() {
 		v1.Use(middleware.Auth(v))
 	}
 
-	tenant := s.mux.PathPrefix(v1TenantPath).Subrouter()
+	tenant := s.mux.PathPrefix(v1TenantsPath).Subrouter()
 
 	// ProvisionTenants
-	tenant.Methods(http.MethodPost).Path("").Handler(s.v1.CreateTenant())
+	tenant.Path("").Handler(s.v1.CreateTenant())
 
 	// Note(KeisukeYamashita):
 	// Paths can be configured by `dynamodb_endpoint` field on developer side.

@@ -62,6 +62,14 @@ type CreateTenantResponse struct {
 
 func (h *Handler) CreateTenant() http.Handler {
 	return handler.NewHandler(func(w http.ResponseWriter, r *http.Request) error {
+		switch r.Method {
+		case http.MethodOptions:
+			return nil
+		case http.MethodPost:
+		default:
+			return kerrors.Wrap(errors.New("method not allowed"), kerrors.WithBadRequest("method not allowed"))
+		}
+
 		var req CreateTenantRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			return err
