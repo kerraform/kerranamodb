@@ -35,6 +35,14 @@ func WithCodeUnknown() WrapOption {
 	}
 }
 
+func WithForbidden(msg string) WrapOption {
+	return func(e *Error) {
+		e.Type = "BADREQUEST"
+		e.Message = msg
+		e.StatusCode = http.StatusForbidden
+	}
+}
+
 func WithNotFound() WrapOption {
 	return func(e *Error) {
 		e.Type = "NOTFOUND"
@@ -42,7 +50,6 @@ func WithNotFound() WrapOption {
 		e.StatusCode = http.StatusNotFound
 	}
 }
-
 
 func WithInternalServerError() WrapOption {
 	return func(e *Error) {

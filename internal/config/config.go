@@ -20,6 +20,12 @@ func (b *Backend) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	return nil
 }
 
+type Auth struct {
+	Enable         bool   `env:"ENABLE,default=true"`
+	PrivateKeyPath string `env:"PRIVATE_KEY_PATH"`
+	PublicKeyPath  string `env:"PUBLIC_KEY_PATH"`
+}
+
 type BackendS3 struct {
 	AccessKey    string `env:"ACCESS_KEY"`
 	Bucket       string `env:"BUCKET"`
@@ -29,6 +35,7 @@ type BackendS3 struct {
 }
 
 type Config struct {
+	Auth     *Auth    `env:",prefix=AUTH_"`
 	Backend  *Backend `env:",prefix=BACKEND_"`
 	Log      *Log     `env:",prefix=LOG_"`
 	Lock     *Lock    `env:",prefix=LOCK_"`
@@ -36,13 +43,14 @@ type Config struct {
 	HTTPPort int      `env:"HTTP_PORT,default=5000"`
 	GRPCPort int      `env:"GRPC_PORT,default=10020"`
 	Trace    *Trace   `env:",prefix=TRACE_"`
+	URL      string   `env:"URL,required"`
 }
 
 type Lock struct {
 	ServiceDiscoveryEndpoint  string `env:"SERVICE_DISCOVERY_ENDPOINT"`
 	ServiceDiscoveryNodeCount int    `env:"SERVICE_DISCOVERY_NODE_COUNT"`
 	ServiceDiscoveryTimeout   int    `env:"SERVICE_DISCOVERY_TIMEOUT"`
-	ServiceDiscoveryPort   int    `env:"SERVICE_DISCOVERY_PORT"`
+	ServiceDiscoveryPort      int    `env:"SERVICE_DISCOVERY_PORT"`
 	HostIP                    string `env:"HOST_IP"`
 	Nodes                     string `env:"NODES"`
 }

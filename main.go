@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kerraform/kerranamodb/internal/auth"
 	"github.com/kerraform/kerranamodb/internal/config"
 	"github.com/kerraform/kerranamodb/internal/dlock"
 	"github.com/kerraform/kerranamodb/internal/driver"
@@ -155,16 +156,31 @@ func run(args []string) error {
 		return fmt.Errorf("backend type %s not supported", cfg.Backend.Type)
 	}
 
+	var a auth.Authenticator
+	if cfg.Auth.Enable {
+		logger.Info("setup authenticator", zap.String("privateKey", cfg.Auth.PrivateKeyPath))
+		a, err = auth.NewAuth(cfg.Auth.PrivateKeyPath, cfg.Auth.PublicKeyPath, d, logger)
+		if err != nil {
+			return err
+		}
+	}
+
 	metrics := metric.New(logger, d)
 
 	wg, ctx := errgroup.WithContext(ctx)
-	v1 := v1.New(&v1.HandlerConfig{
+	v1, err := v1.New(&v1.HandlerConfig{
+		Auth:   a,
 		Dmu:    dmu,
 		Driver: d,
 		Logger: logger,
+		URL:    cfg.URL,
 	})
+	if err != nil {
+		return err
+	}
 
 	httpSvr := http.NewServer(&server.ServerConfig{
+		Auth:   a,
 		Dmu:    dmu,
 		Driver: d,
 		Logger: logger,
