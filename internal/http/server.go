@@ -63,9 +63,8 @@ func NewServer(cfg *ServerConfig) *Server {
 		s.mux.Use(middleware.NewTrace(s.tracer))
 	}
 
-	s.metric.RegisterAllMetrics()
-
 	s.registerRegistryHandler()
+	s.metric.RegisterAllMetrics()
 	s.registerUtilHandler()
 	s.registerMetricsHandler()
 
