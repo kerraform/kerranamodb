@@ -118,7 +118,7 @@ func (dmu *DMutex) Connect(ctx context.Context) error {
 		go func() {
 			l, err := dmu.connect(ctx, &DLockerConfig{
 				endpoint: e,
-				logger:   dmu.logger.Named("dlocker").With(zap.String("endpoint", e)),
+				logger:   dmu.logger.Named("DLocker").With(zap.String("endpoint", e)),
 			})
 			if err != nil {
 				return
@@ -246,8 +246,6 @@ func (dmu *DMutex) Lock(ctx context.Context, dlid DLockID) error {
 	defer cancel()
 
 	d := dmu.SetWriting(ctx, dlid)
-	defer dmu.SetUnWriting(ctx, dlid)
-
 	ch := make(chan bool)
 	defer close(ch)
 
@@ -272,7 +270,12 @@ func (dmu *DMutex) Unlock(ctx context.Context, dlid DLockID) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
-	d := dmu.SetWriting(ctx, dlid)
+	d, ok := dmu.mus[dlid]
+	if !ok {
+		dmu.logger.Warn("unlock on not locked lock", zap.String("dlid", string(dlid)))
+		return nil
+	}
+
 	defer dmu.SetUnWriting(ctx, dlid)
 
 	ch := make(chan struct{})
@@ -303,7 +306,6 @@ func (dmu *DMutex) RLock(ctx context.Context, dlid DLockID) error {
 	defer cancel()
 
 	d := dmu.SetReading(ctx, dlid)
-	defer dmu.SetUnReading(ctx, dlid)
 
 	ch := make(chan bool)
 	defer close(ch)
@@ -329,7 +331,11 @@ func (dmu *DMutex) RUnlock(ctx context.Context, dlid DLockID) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
-	d := dmu.SetReading(ctx, dlid)
+	d, ok := dmu.mus[dlid]
+	if !ok {
+		dmu.logger.Warn("read unlock on not read locked lock", zap.String("dlid", string(dlid)))
+		return nil
+	}
 	defer dmu.SetUnReading(ctx, dlid)
 
 	ch := make(chan struct{})
