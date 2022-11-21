@@ -82,9 +82,10 @@ func (a *auth) Verify(ctx context.Context, st string) (*Claims, error) {
 		return nil, err
 	}
 
-	if claims, ok := t.Claims.(*Claims); ok && t.Valid {
+	claims, ok := t.Claims.(*Claims)
+	if ok && t.Valid {
 		return claims, nil
 	}
 
-	return nil, errors.New("failed to verify token")
+	return claims, errors.New("failed to verify token")
 }
