@@ -36,37 +36,6 @@ type DMutex struct {
 	hostIP    string
 }
 
-type dmutex struct {
-	logger    *zap.Logger
-	mu        *sync.RWMutex
-	isReading bool
-	isWriting bool
-}
-
-func (d *dmutex) Lock() {
-	d.logger.Debug("lock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
-	d.mu.Lock()
-	d.isWriting = true
-}
-
-func (d *dmutex) UnLock() {
-	d.logger.Debug("unlock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
-	d.isWriting = true
-	d.mu.Unlock()
-}
-
-func (d *dmutex) Rlock() {
-	d.logger.Debug("rlock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
-	d.mu.RLock()
-	d.isReading = true
-}
-
-func (d *dmutex) RUnlock() {
-	d.logger.Debug("runlock", zap.Bool("isWriting", d.isWriting), zap.Bool("isReading", d.isReading))
-	d.isReading = false
-	d.mu.RUnlock()
-}
-
 type LockOptions func(*options)
 
 func WithLogger(logger *zap.Logger) LockOptions {
@@ -149,7 +118,7 @@ func (dmu *DMutex) Connect(ctx context.Context) error {
 		go func() {
 			l, err := dmu.connect(ctx, &DLockerConfig{
 				endpoint: e,
-				logger:   dmu.logger.Named("dlocker").With(zap.String("endpoint", e)),
+				logger:   dmu.logger.Named("DLocker").With(zap.String("endpoint", e)),
 			})
 			if err != nil {
 				return
@@ -173,44 +142,38 @@ func (dmu *DMutex) Connect(ctx context.Context) error {
 	return nil
 }
 
-func (dmu *DMutex) SetReading(lid DLockID) {
+func (dmu *DMutex) SetReading(ctx context.Context, dlid DLockID) *dmutex {
 	dmu.logger.Debug("set to reading status")
-	dmu.setReading(lid, true)
+	return dmu.setReading(ctx, dlid, true)
 }
 
-func (dmu *DMutex) SetUnReading(lid DLockID) {
+func (dmu *DMutex) SetUnReading(ctx context.Context, dlid DLockID) *dmutex {
 	dmu.logger.Debug("set to unreading status")
-	dmu.setReading(lid, false)
+	return dmu.setReading(ctx, dlid, false)
 }
 
-func (dmu *DMutex) setReading(lid DLockID, v bool) {
+func (dmu *DMutex) setReading(ctx context.Context, dlid DLockID, lock bool) *dmutex {
 	dmu.mu.Lock()
 	defer dmu.mu.Unlock()
-	mu, ok := dmu.mus[lid]
-	if ok {
-		if v {
-			mu.Rlock()
-			return
+	mu, ok := dmu.mus[dlid]
+	if !ok {
+		mu = &dmutex{
+			dmu:       dsync.NewDRWMutex(ctx, string(dlid), dmu.DSync),
+			logger:    dmu.logger.Named("dmutex").With(zap.String("dlid", string(dlid))),
+			mu:        &sync.RWMutex{},
+			isReading: lock,
 		}
-
-		mu.RUnlock()
-		return
 	}
 
-	m := &dmutex{
-		logger:    dmu.logger.Named("dmutex").With(zap.String("dlid", string(lid))),
-		mu:        &sync.RWMutex{},
-		isReading: v,
-	}
-
-	if v {
-		m.Rlock()
+	if lock {
+		mu.Rlock()
 	} else {
-		m.RUnlock()
+		mu.RUnlock()
 	}
 
-	dmu.mus[lid] = m
-	dmu.logger.Debug("initial set reading", zap.String("dlid", string(lid)))
+	dmu.mus[dlid] = mu
+	dmu.logger.Debug("initial set reading", zap.String("dlid", string(dlid)))
+	return mu
 }
 
 func (dmu *DMutex) IsReadable(lid DLockID) bool {
@@ -218,51 +181,45 @@ func (dmu *DMutex) IsReadable(lid DLockID) bool {
 	defer dmu.mu.RUnlock()
 	mu, ok := dmu.mus[lid]
 	if !ok {
-		return false
+		return true
 	}
 
 	mu.mu.RLock()
 	defer mu.mu.RUnlock()
-	return mu.isReading || mu.isWriting
+	return !(mu.isReading || mu.isWriting)
 }
 
-func (dmu *DMutex) SetWriting(lid DLockID) {
-	dmu.setWriting(lid, true)
+func (dmu *DMutex) SetWriting(ctx context.Context, lid DLockID) *dmutex {
+	return dmu.setWriting(ctx, lid, true)
 }
 
-func (dmu *DMutex) SetUnWriting(lid DLockID) {
-	dmu.setWriting(lid, false)
+func (dmu *DMutex) SetUnWriting(ctx context.Context, lid DLockID) *dmutex {
+	return dmu.setWriting(ctx, lid, false)
 }
 
-func (dmu *DMutex) setWriting(lid DLockID, v bool) {
+func (dmu *DMutex) setWriting(ctx context.Context, dlid DLockID, lock bool) *dmutex {
 	dmu.mu.Lock()
 	defer dmu.mu.Unlock()
-	mu, ok := dmu.mus[lid]
-	if ok {
-		if v {
-			mu.Lock()
-			return
+	mu, ok := dmu.mus[dlid]
+	if !ok {
+		mu = &dmutex{
+			dmu:       dsync.NewDRWMutex(ctx, string(dlid), dmu.DSync),
+			logger:    dmu.logger.Named("dmutex").With(zap.String("dlid", string(dlid))),
+			mu:        &sync.RWMutex{},
+			isWriting: lock,
+			isReading: lock,
 		}
-
-		mu.UnLock()
-		return
 	}
 
-	m := &dmutex{
-		logger:    dmu.logger.Named("dmutex").With(zap.String("dlid", string(lid))),
-		mu:        &sync.RWMutex{},
-		isWriting: v,
-		isReading: v,
-	}
-
-	if v {
-		m.Rlock()
+	if lock {
+		mu.Lock()
 	} else {
-		m.RUnlock()
+		mu.Unlock()
 	}
 
-	dmu.mus[lid] = m
-	dmu.logger.Debug("initial write reading", zap.String("dlid", string(lid)))
+	dmu.mus[dlid] = mu
+	dmu.logger.Debug("initial set write", zap.String("dlid", string(dlid)))
+	return mu
 }
 
 func (dmu *DMutex) IsWritable(lid DLockID) bool {
@@ -270,12 +227,12 @@ func (dmu *DMutex) IsWritable(lid DLockID) bool {
 	defer dmu.mu.RUnlock()
 	mu, ok := dmu.mus[lid]
 	if !ok {
-		return false
+		return true
 	}
 
 	mu.mu.RLock()
 	defer mu.mu.RUnlock()
-	return mu.isWriting
+	return !mu.isWriting
 }
 
 func (dmu *DMutex) connect(ctx context.Context, cfg *DLockerConfig) (dsync.NetLocker, error) {
@@ -284,53 +241,117 @@ func (dmu *DMutex) connect(ctx context.Context, cfg *DLockerConfig) (dsync.NetLo
 	return l, nil
 }
 
-func (dmu *DMutex) Lock(ctx context.Context, dlid DLockID) (*dsync.DRWMutex, error) {
-	dmu.SetWriting(dlid)
-	defer dmu.SetUnWriting(dlid)
+func (dmu *DMutex) Lock(ctx context.Context, dlid DLockID) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 
-	mu := dsync.NewDRWMutex(ctx, string(dlid), dmu.DSync)
+	d := dmu.SetWriting(ctx, dlid)
 	ch := make(chan bool)
 	defer close(ch)
 
 	go func(id DLockID) {
-		ch <- mu.GetLock(string(dlid), "", 1*time.Second)
+		ch <- d.dmu.GetLock(string(dlid), "", 1*time.Second)
 	}(dlid)
 
 	select {
 	case success := <-ch:
 		if success {
-			dmu.logger.Debug("success to get lock", zap.Bool("success", success))
-			return mu, nil
+			dmu.logger.Debug("acquired lock", zap.Bool("success", success))
+			return nil
 		}
 
-		return nil, fmt.Errorf("state is locked")
+		return fmt.Errorf("state is locked")
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return ctx.Err()
 	}
 }
 
-func (dmu *DMutex) RLock(ctx context.Context, dlid DLockID) (*dsync.DRWMutex, error) {
-	dmu.SetReading(dlid)
-	defer dmu.SetUnReading(dlid)
+func (dmu *DMutex) Unlock(ctx context.Context, dlid DLockID) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 
-	mu := dsync.NewDRWMutex(ctx, string(dlid), dmu.DSync)
+	d, ok := dmu.mus[dlid]
+	if !ok {
+		dmu.logger.Warn("unlock on not locked lock", zap.String("dlid", string(dlid)))
+		return nil
+	}
+
+	defer dmu.SetUnWriting(ctx, dlid)
+
+	ch := make(chan struct{})
+	defer close(ch)
+
+	go func() {
+		d.dmu.Unlock()
+		select {
+		case <-ch:
+		default:
+			ch <- struct{}{}
+		}
+	}()
+
+	select {
+	case <-ch:
+		dmu.logger.Debug("released lock")
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// RLock read locks for the passed dlock ID and writes the status
+// to "isReading".
+func (dmu *DMutex) RLock(ctx context.Context, dlid DLockID) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	d := dmu.SetReading(ctx, dlid)
+
 	ch := make(chan bool)
 	defer close(ch)
 
 	go func(dlid DLockID) {
-		ch <- mu.GetRLock(string(dlid), "", 1*time.Second)
+		ch <- d.dmu.GetRLock(string(dlid), "", 1*time.Second)
 	}(dlid)
 
 	select {
 	case success := <-ch:
 		if success {
-			dmu.logger.Debug("success to get rlock", zap.Bool("success", success))
-			return mu, nil
+			dmu.logger.Debug("acquired read lock", zap.Bool("success", success))
+			return nil
 		}
 
-		return nil, fmt.Errorf("state is locked")
+		return fmt.Errorf("state is locked")
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return ctx.Err()
+	}
+}
+
+func (dmu *DMutex) RUnlock(ctx context.Context, dlid DLockID) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	d, ok := dmu.mus[dlid]
+	if !ok {
+		dmu.logger.Warn("read unlock on not read locked lock", zap.String("dlid", string(dlid)))
+		return nil
+	}
+	defer dmu.SetUnReading(ctx, dlid)
+
+	ch := make(chan struct{})
+	defer close(ch)
+
+	go func() {
+		d.dmu.RUnlock()
+		ch <- struct{}{}
+	}()
+
+	select {
+	case <-ch:
+		dmu.logger.Debug("released read lock")
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 

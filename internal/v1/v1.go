@@ -88,12 +88,11 @@ func (h *Handler) getLock(w http.ResponseWriter, r *http.Request) error {
 
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
-	lock, err := h.dmu.RLock(ctx, dlid)
-	if err != nil {
+	if err := h.dmu.RLock(ctx, dlid); err != nil {
 		h.logger.Error("someone in the cluster has the lock or trying to get it", zap.Error(err))
 		return kerrors.Wrap(fmt.Errorf("state is locked"), kerrors.WithConditionalCheckFailedException())
 	}
-	defer lock.RUnlock()
+	defer h.dmu.RUnlock(ctx, dlid)
 
 	info, err := h.driver.GetLock(r.Context(), i.TableName, lid)
 	if err != nil {
@@ -142,12 +141,10 @@ func (h *Handler) putLock(w http.ResponseWriter, r *http.Request) error {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	rl, err := h.dmu.RLock(ctx, dlid)
-	if err != nil {
+	if err := h.dmu.RLock(ctx, dlid); err != nil {
 		h.logger.Error("someone in the cluster has the lock or trying to get it", zap.Error(err))
 		return kerrors.Wrap(fmt.Errorf("state is locked"), kerrors.WithConditionalCheckFailedException())
 	}
-	h.logger.Info("acquired lock")
 
 	hasLock, err := h.driver.HasLock(r.Context(), i.TableName, lid)
 	if err != nil {
@@ -156,16 +153,13 @@ func (h *Handler) putLock(w http.ResponseWriter, r *http.Request) error {
 	if hasLock {
 		return kerrors.Wrap(fmt.Errorf("state is locked"), kerrors.WithConditionalCheckFailedException())
 	}
-	rl.RUnlock()
+	h.dmu.RUnlock(ctx, dlid)
 
-	ctx, cancel = context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
-	l, err := h.dmu.Lock(ctx, dlid)
-	if err != nil {
+	if err := h.dmu.Lock(r.Context(), dlid); err != nil {
 		h.logger.Error("someone in the cluster has the lock or trying to get it", zap.Error(err))
 		return kerrors.Wrap(fmt.Errorf("state is locked"), kerrors.WithConditionalCheckFailedException())
 	}
-	defer l.Unlock()
+	defer h.dmu.Unlock(ctx, dlid)
 
 	if err := h.driver.SaveLock(r.Context(), i.TableName, lid, driver.Info(info)); err != nil {
 		return err
