@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	v1TenantPath = fmt.Sprintf("%s/tenant", v1Path)
+	v1TenantsPath = fmt.Sprintf("%s/tenants", v1Path)
 )
 
 func (s *Server) registerRegistryHandler() {
@@ -26,7 +26,7 @@ func (s *Server) registerRegistryHandler() {
 		v1.Use(middleware.Auth(v))
 	}
 
-	tenant := s.mux.PathPrefix(v1TenantPath).Subrouter()
+	tenant := s.mux.PathPrefix(v1TenantsPath).Subrouter()
 
 	// ProvisionTenants
 	tenant.Methods(http.MethodPost).Path("").Handler(s.v1.CreateTenant())
