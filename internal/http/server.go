@@ -29,7 +29,7 @@ type Server struct {
 	mux            *mux.Router
 	server         *http.Server
 	tracer         trace.Tracer
-	url            string
+	corsOrigin     string
 
 	v1 *v1.Handler
 }
@@ -43,7 +43,7 @@ type ServerConfig struct {
 	Logger         *zap.Logger
 	Metric         *metric.RegistryMetrics
 	Tracer         trace.Tracer
-	URL            string
+	CORSOrigin     string
 	V1             *v1.Handler
 }
 
@@ -59,6 +59,7 @@ func NewServer(cfg *ServerConfig) *Server {
 		tracer:         cfg.Tracer,
 		mux:            mux.NewRouter(),
 		v1:             cfg.V1,
+		corsOrigin:     cfg.CORSOrigin,
 	}
 
 	if cfg.Tracer != nil {

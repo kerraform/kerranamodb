@@ -44,6 +44,7 @@ type Config struct {
 	GRPCPort int      `env:"GRPC_PORT,default=10020"`
 	Trace    *Trace   `env:",prefix=TRACE_"`
 	URL      string   `env:"URL,required"`
+	CORS     *CORS    `env:",prefix=CORS_"`
 }
 
 type Lock struct {
@@ -53,6 +54,10 @@ type Lock struct {
 	ServiceDiscoveryPort      int    `env:"SERVICE_DISCOVERY_PORT"`
 	HostIP                    string `env:"HOST_IP"`
 	Nodes                     string `env:"NODES"`
+}
+
+type CORS struct {
+	Origin string `env:"ORIGIN"`
 }
 
 func (l *Lock) GetNodes() []string {

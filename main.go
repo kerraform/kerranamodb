@@ -180,14 +180,14 @@ func run(args []string) error {
 	}
 
 	httpSvr := http.NewServer(&server.ServerConfig{
-		Auth:   a,
-		Dmu:    dmu,
-		Driver: d,
-		Logger: logger,
-		Metric: metrics,
-		Tracer: t,
-		URL:    cfg.URL,
-		V1:     v1,
+		Auth:       a,
+		Dmu:        dmu,
+		Driver:     d,
+		Logger:     logger,
+		Metric:     metrics,
+		Tracer:     t,
+		CORSOrigin: cfg.CORS.Origin,
+		V1:         v1,
 	})
 
 	httpConn, err := net.Listen("tcp", cfg.HTTPAddress())
