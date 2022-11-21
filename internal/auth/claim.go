@@ -29,6 +29,9 @@ func WithClaims(ctx context.Context, claims *Claims) context.Context {
 	return context.WithValue(ctx, contextKey, claims)
 }
 
+func (c *Claims) TableAccessible(table string) bool {
+	return c.Table == table
+}
 
 func (c *Claims) Valid() error {
 	return nil

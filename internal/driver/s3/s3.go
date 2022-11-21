@@ -172,5 +172,6 @@ func (d *d) GetTenant(ctx context.Context, table string) (*modelv1.Tenant, error
 
 	return &modelv1.Tenant{
 		Table: table,
+		Token: string(b.Bytes()),
 	}, nil
 }
