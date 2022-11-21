@@ -126,6 +126,15 @@ func (h *Handler) deleteLock(_ http.ResponseWriter, r *http.Request) error {
 	}
 	defer r.Body.Close()
 
+	c, err := auth.FromContext(r.Context())
+	if err != nil {
+		return kerrors.Wrap(err, kerrors.WithInternalServerError())
+	}
+
+	if !c.TableAccessible(i.TableName) {
+		return kerrors.Wrap(err, kerrors.WithForbidden("table not accessible"))
+	}
+
 	lid, err := i.GetLockID()
 	if err != nil {
 		return kerrors.Wrap(err, kerrors.WithBadRequest("failed to get lock id"))
