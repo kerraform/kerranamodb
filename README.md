@@ -19,10 +19,6 @@
 
 These are the list of the supported features.
 
-* Module registry
-  * Supports [Module Registry Protocol](https://www.terraform.io/internals/module-registry-protocol) and almost all [Registry standard API](https://www.terraform.io/registry/api-docs)
-* Provider registry
-  * Supports [Provider Registry Protocol](https://www.terraform.io/internals/provider-registry-protocol) and [Terraform Cloud API](https://www.terraform.io/cloud-docs/api-docs/private-registry/providers) inspired APIs.
 * Access logs
 * Storage
   * Local disk
@@ -55,6 +51,11 @@ Theses are environment variable list that you can configure.
 | `TRACE_ENABLE` | Enables the Trace. | `bool` | `false` |
 | `TRACE_TYPE` | Specify the trace backend (supports `console` and `json`). | `string` | `console` |
 | `TRACE_JAEGER_ENDPOINT` | Endpoint of the Jaeger (e.g. `http://localhost:14268/api/traces`). | `string` | (required) |
+| `LOCK_SERVICE_DISCOVERY_ENDPOINT` | Endpoint to call on service discovery. | `string` | |
+| `LOCK_SERVICE_DISCOVERY_NODE_COUNT` | Expected number of counts on service discovery | `int` |  |
+| `LOCK_SERVICE_DISCOVERY_TIMEOUT` | Timeout for service discovery.  | `int` | |
+| `LOCK_HOST_IP` | Server's host IP. Required if using service discovery. | `string` |  |
+| `LOCK_NODES` | Comma separated static node endpoints. It can be IP or any URL. | `string` | |
 | `LOG_FORMAT` | Format of the logs (supports `json`, `console`, `color`) | `string` | `json` |
 | `LOG_LEVEL` | Level of the logs (supports `info`, `debug`, `warn`, `error`) | `string` | `info` |
 
