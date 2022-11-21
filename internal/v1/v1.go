@@ -56,7 +56,8 @@ type CreateTenantRequest struct {
 }
 
 type CreateTenantResponse struct {
-	URL string `json:"url"`
+	Token string `json:"token"`
+	URL   string `json:"url"`
 }
 
 func (h *Handler) CreateTenant() http.Handler {
@@ -89,11 +90,12 @@ func (h *Handler) CreateTenant() http.Handler {
 		}
 
 		q := h.url.Query()
-		q.Set("token", st)
+		q.Set(auth.TokenQueryKey, st)
 		h.url.RawQuery = q.Encode()
 
 		return json.NewEncoder(w).Encode(&CreateTenantResponse{
-			URL: h.url.String(),
+			URL:   h.url.String(),
+			Token: st,
 		})
 	})
 }

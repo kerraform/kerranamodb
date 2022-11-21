@@ -23,6 +23,7 @@ func (b *Backend) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 type Auth struct {
 	Enable         bool   `env:"ENABLE,default=true"`
 	PrivateKeyPath string `env:"PRIVATE_KEY_PATH"`
+	PublicKeyPath  string `env:"PUBLIC_KEY_PATH"`
 }
 
 type BackendS3 struct {

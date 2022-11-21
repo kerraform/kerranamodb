@@ -22,14 +22,14 @@ func (s *Server) registerRegistryHandler() {
 
 	v1 := s.mux.PathPrefix(v1Path).Subrouter()
 	v1.Use(middleware.DynamoDB())
+	if v := s.auth; v != nil {
+		v1.Use(middleware.Auth(v))
+	}
 
 	tenant := s.mux.PathPrefix(v1TenantPath).Subrouter()
 
 	// ProvisionTenants
 	tenant.Methods(http.MethodPost).Path("").Handler(s.v1.CreateTenant())
-	if v := s.auth; v != nil {
-		tenant.Use(middleware.Auth(v))
-	}
 
 	// Note(KeisukeYamashita):
 	// Paths can be configured by `dynamodb_endpoint` field on developer side.

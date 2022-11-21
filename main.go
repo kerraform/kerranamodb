@@ -159,7 +159,7 @@ func run(args []string) error {
 	var a auth.Authenticator
 	if cfg.Auth.Enable {
 		logger.Info("setup authenticator", zap.String("privateKey", cfg.Auth.PrivateKeyPath))
-		a, err = auth.NewAuth(cfg.Auth.PrivateKeyPath, d, logger)
+		a, err = auth.NewAuth(cfg.Auth.PrivateKeyPath, cfg.Auth.PublicKeyPath, d, logger)
 		if err != nil {
 			return err
 		}
