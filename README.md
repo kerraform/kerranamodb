@@ -49,6 +49,7 @@ Theses are environment variable list that you can configure.
 | `BACKEND_S3_ENDPOINT` | Endpoint of the Amazon S3 compatible object storage. Ignore if you are using Amazon S3  | `string` |  |
 | `BACKEND_S3_SECRET_KEY` | Secret key of Amazon S3 | `string` |  - (Required if `BACKEND_TYPE` is `s3`) |
 | `BACKEND_S3_USE_PATH_STYLE` | Generate URL on path based. Configure to `true` if you are using MinIO or other S3 compatible object storage which is path based instead of subdomain base. | `bool` |  `false` |
+| `CORS_ORIGIN` | Origin of the website. | `string` | |
 | `TRACE_ENABLE` | Enables the Trace. | `bool` | `false` |
 | `TRACE_TYPE` | Specify the trace backend (supports `console` and `json`). | `string` | `console` |
 | `TRACE_JAEGER_ENDPOINT` | Endpoint of the Jaeger (e.g. `http://localhost:14268/api/traces`). | `string` | (required) |
