@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/kerraform/kerranamodb/internal/auth"
@@ -22,8 +23,9 @@ import (
 type Handler struct {
 	auth   auth.Authenticator
 	dmu    *dlock.DMutex
-	logger *zap.Logger
 	driver driver.Driver
+	logger *zap.Logger
+	url    *url.URL
 }
 
 type HandlerConfig struct {
@@ -31,15 +33,22 @@ type HandlerConfig struct {
 	Dmu    *dlock.DMutex
 	Driver driver.Driver
 	Logger *zap.Logger
+	URL    string
 }
 
-func New(cfg *HandlerConfig) *Handler {
+func New(cfg *HandlerConfig) (*Handler, error) {
+	u, err := url.Parse(cfg.URL)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Handler{
 		auth:   cfg.Auth,
 		dmu:    cfg.Dmu,
 		driver: cfg.Driver,
 		logger: cfg.Logger.Named("v1"),
-	}
+		url:    u,
+	}, nil
 }
 
 type CreateTenantRequest struct {
@@ -68,7 +77,9 @@ func (h *Handler) CreateTenant() http.Handler {
 			return kerrors.Wrap(err, kerrors.WithBadRequest(fmt.Sprintf("%s table already exists", req.Table)))
 		}
 
-		st, err := h.auth.Generate(r.Context(), &auth.Claims{})
+		st, err := h.auth.Generate(r.Context(), &auth.Claims{
+			Table: req.Table,
+		})
 		if err != nil {
 			return err
 		}
@@ -77,7 +88,13 @@ func (h *Handler) CreateTenant() http.Handler {
 			return err
 		}
 
-		return json.NewEncoder(w).Encode(&CreateTenantResponse{})
+		q := h.url.Query()
+		q.Set("token", st)
+		h.url.RawQuery = q.Encode()
+
+		return json.NewEncoder(w).Encode(&CreateTenantResponse{
+			URL: h.url.String(),
+		})
 	})
 }
 

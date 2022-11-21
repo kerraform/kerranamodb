@@ -42,6 +42,7 @@ type Config struct {
 	HTTPPort int      `env:"HTTP_PORT,default=5000"`
 	GRPCPort int      `env:"GRPC_PORT,default=10020"`
 	Trace    *Trace   `env:",prefix=TRACE_"`
+	URL      string   `env:"URL,required"`
 }
 
 type Lock struct {

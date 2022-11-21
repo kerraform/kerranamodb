@@ -168,12 +168,16 @@ func run(args []string) error {
 	metrics := metric.New(logger, d)
 
 	wg, ctx := errgroup.WithContext(ctx)
-	v1 := v1.New(&v1.HandlerConfig{
+	v1, err := v1.New(&v1.HandlerConfig{
 		Auth:   a,
 		Dmu:    dmu,
 		Driver: d,
 		Logger: logger,
+		URL:    cfg.URL,
 	})
+	if err != nil {
+		return err
+	}
 
 	httpSvr := http.NewServer(&server.ServerConfig{
 		Auth:   a,
