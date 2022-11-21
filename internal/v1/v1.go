@@ -64,6 +64,7 @@ func (h *Handler) CreateTenant() http.Handler {
 	return handler.NewHandler(func(w http.ResponseWriter, r *http.Request) error {
 		switch r.Method {
 		case http.MethodOptions:
+			w.WriteHeader(http.StatusOK)
 			return nil
 		case http.MethodPost:
 		default:
