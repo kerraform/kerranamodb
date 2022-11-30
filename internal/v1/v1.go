@@ -98,7 +98,7 @@ func (h *Handler) CreateTenant() http.Handler {
 			return err
 		}
 
-		url := h.url.JoinPath("tables", st)
+		url := h.url.JoinPath("v1", "tables", st)
 		return json.NewEncoder(w).Encode(&CreateTenantResponse{
 			URL:   url.String(),
 			Token: st,
