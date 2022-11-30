@@ -9,8 +9,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.11.40
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.29.3
 	github.com/aws/smithy-go v1.13.4
-	github.com/bufbuild/connect-go v1.1.0
+	github.com/bufbuild/connect-go v1.2.0
 	github.com/go-playground/validator/v10 v10.11.1
+	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/gorilla/mux v1.8.0
 	github.com/minio/dsync/v3 v3.0.1
 	github.com/prometheus/client_golang v1.14.0
@@ -46,8 +47,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
-	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
-	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
