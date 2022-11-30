@@ -1,4 +1,4 @@
 FROM alpine:latest
 
-COPY kegistry /usr/bin/
-ENTRYPOINT ["kegistry"]
+COPY kerranamodb /usr/bin/
+ENTRYPOINT ["kerranamodb"]
