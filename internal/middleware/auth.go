@@ -2,14 +2,22 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/kerraform/kerranamodb/internal/auth"
 )
 
 func Auth(a auth.Authenticator) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			st := r.URL.Query().Get(auth.TokenQueryKey)
+			// TODO: This should be improved.
+			if !strings.HasPrefix(r.URL.String(), "/v1/tables") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			st := mux.Vars(r)["token"]
 			if st == "" {
 				http.Error(w, "missing token", http.StatusUnauthorized)
 				return

@@ -98,12 +98,9 @@ func (h *Handler) CreateTenant() http.Handler {
 			return err
 		}
 
-		q := h.url.Query()
-		q.Set(auth.TokenQueryKey, st)
-		h.url.RawQuery = q.Encode()
-
+		url := h.url.JoinPath("tables", st)
 		return json.NewEncoder(w).Encode(&CreateTenantResponse{
-			URL:   h.url.String(),
+			URL:   url.String(),
 			Token: st,
 		})
 	})

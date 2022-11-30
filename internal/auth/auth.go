@@ -64,6 +64,7 @@ func (a *auth) Generate(ctx context.Context, claim *Claims) (string, error) {
 	t := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claim)
 	st, err := t.SignedString(a.privateKey)
 	if err != nil {
+		a.logger.Error("failed to generate token", zap.Error(err))
 		return "", err
 	}
 
@@ -79,6 +80,7 @@ func (a *auth) Verify(ctx context.Context, st string) (*Claims, error) {
 		return a.publicKey, nil
 	})
 	if err != nil {
+		a.logger.Error("failed to verify token", zap.Error(err))
 		return nil, err
 	}
 

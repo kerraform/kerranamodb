@@ -13,8 +13,12 @@ GOCMD = go
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 
-DEV_DIR   := $(shell pwd)/dev
-BIN_DIR   := $(DEV_DIR)/bin
+DEV_DIR     := $(shell pwd)/dev
+BIN_DIR     := $(DEV_DIR)/bin
+KEY_DIR     := $(DEV_DIR)/key
+PRIVATE_KEY := $(DEV_DIR)/key/private.pem
+PUBLIC_KEY  := $(DEV_DIR)/key/public.pem
+
 TOOLS_DIR := $(DEV_DIR)/tools
 BUILD_TOOLS := cd $(TOOLS_DIR) && go build -o
 
@@ -110,6 +114,11 @@ run-jaeger:
 		-p 14268:14268 \
 		-p 9411:9411 \
 		jaegertracing/all-in-one:1.6
+
+.PHONY: generate-key
+generate-key:
+	@/opt/homebrew/opt/openssl@1.1/bin/openssl genpkey -algorithm ed25519 -out $(PRIVATE_KEY)
+	@/opt/homebrew/opt/openssl@1.1/bin/openssl  pkey -in $(PRIVATE_KEY) -pubout > $(PUBLIC_KEY)
 
 .PHONY: run-service-discovery
 run-service-discovery:
