@@ -16,7 +16,7 @@ type MetricName string
 type MetricLabel string
 
 const (
-	metricNamespace = "kegistry"
+	metricNamespace = "kerranamodb"
 
 	// Metrics
 	metricNameHTTPRequestTotal MetricName = "registry_request_total"
