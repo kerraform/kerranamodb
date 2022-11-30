@@ -49,7 +49,7 @@ func NewLockService(opts *LockServiceOptions) *Server {
 
 func (s *Server) Serve() error {
 	return http.ListenAndServe(
-		fmt.Sprintf("localhost:%d", s.port),
+		fmt.Sprintf("0.0.0.0:%d", s.port),
 		h2c.NewHandler(s.mux, &http2.Server{}),
 	)
 }

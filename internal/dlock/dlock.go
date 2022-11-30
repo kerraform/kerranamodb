@@ -44,6 +44,12 @@ func WithLogger(logger *zap.Logger) LockOptions {
 	}
 }
 
+func WithPort(port int) LockOptions {
+	return func(o *options) {
+		o.port = port
+	}
+}
+
 func WithServiceDiscovery(sd string, count int, hostIP string, port int) LockOptions {
 	return func(o *options) {
 		o.expected = count
