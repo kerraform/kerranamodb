@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.11.40
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.29.4
 	github.com/aws/smithy-go v1.13.4
-	github.com/bufbuild/connect-go v1.2.0
+	github.com/bufbuild/connect-go v1.5.2
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/google/go-cmp v0.5.9
